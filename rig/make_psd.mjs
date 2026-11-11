@@ -1,0 +1,13 @@
+import { chromium } from '/home/claude/aitrends-2d-studio/node_modules/playwright/index.mjs';
+import http from 'http'; import fs from 'fs'; import path from 'path';
+const ROOTS = { '/node_modules/': '/home/claude/ext/rigby2d/node_modules/', '/': '/home/claude/rig/' };
+const srv = http.createServer((q, r) => { const u = q.url.split('?')[0]; const [pre, dir] = Object.entries(ROOTS).find(([p]) => u.startsWith(p)); const f = path.join(dir, u.slice(pre.length)); if (!fs.existsSync(f)) { r.writeHead(404); return r.end(); } r.writeHead(200, { 'Content-Type': f.endsWith('.js') ? 'text/javascript' : 'text/html' }); fs.createReadStream(f).pipe(r); }).listen(0);
+const port = srv.address().port, b = await chromium.launch({ executablePath: '/usr/bin/google-chrome' }), p = await b.newPage();
+p.on('console', m => console.log('page:', m.text())); p.on('pageerror', e => console.log('ERR', e.message));
+await p.goto(`http://localhost:${port}/vini_parts.html`); await p.waitForFunction('window.OUT', null, { timeout: 60000 });
+const out = await p.evaluate('window.OUT');
+fs.mkdirSync('layers', { recursive: true });
+for (const [n, d] of out.layers) fs.writeFileSync(`layers/${n}.png`, Buffer.from(d.split(',')[1], 'base64'));
+fs.writeFileSync('vini_preview.png', Buffer.from(out.preview.split(',')[1], 'base64'));
+fs.writeFileSync('vini.psd', Buffer.from(out.psd, 'base64'));
+console.log('layers', out.layers.length); await b.close(); srv.close();

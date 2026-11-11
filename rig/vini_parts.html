@@ -1,0 +1,86 @@
+<!doctype html><html><body style="margin:0;background:#888">
+<script src="/node_modules/ag-psd/dist/bundle.js"></script>
+<script>
+// Vini (v1 look) drawn as separate body-part layers on one canvas, front view, slight A-pose.
+// Units: v1 character units x K. Origin = canvas bottom centre (feet on the bottom edge).
+const K = 4, CW = 900, CH = 1400, OX = CW / 2, OY = CH - 40;
+const INK = '#16131a', SKIN = '#e5d6c6', SKIN_SH = '#cbbcb0', GREEN = '#4c6b50', GREEN_SH = '#3c5641', PACK = '#5e4432', HAIR = '#37251a', STRAP = '#4f3a2a';
+const LW = 16, LIMB = 20;
+const P = (x, y) => [OX + x * K, OY + y * K];          // v1 units -> canvas px (y negative = up)
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+function grain(g, path, a = 0.07) { g.save(); path(); g.clip(); for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '255,255,255'},${a * rnd()})`; g.fillRect(rnd() * CW, rnd() * CH, 2, 2); } g.restore(); }
+function shape(g, path, fill, lw = LW, o = {}) { path(); g.fillStyle = fill; g.fill(); if (o.shade) o.shade(); grain(g, path, o.grainA ?? 0.06); path(); g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = lw; g.stroke(); }
+function line(g, pts, w, col = INK) { g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(...pts[0]); for (const q of pts.slice(1)) g.lineTo(...q); g.stroke(); }
+function sleeve(g, a, b, w) { line(g, [a, b], w + LW, INK); line(g, [a, b], w, GREEN); }
+
+// skeleton landmarks (v1 numbers, turn 0)
+const hipY = -150, shY = -238, R = 34 * 22 / 21, sw = 25, hw = 23, hc = [0, shY - R * 0.95];
+const SH = { l: [sw * 0.92, shY + 10], r: [-sw * 0.92, shY + 10] };            // character left = image right
+const EL = { l: [sw * 0.92 + 14, shY + 54], r: [-sw * 0.92 - 14, shY + 54] };
+const HA = { l: [sw * 0.92 + 24, shY + 96], r: [-sw * 0.92 - 24, shY + 96] };
+const HIP = { l: [9, hipY + 4], r: [-9, hipY + 4] }, KN = { l: [12, hipY + 78], r: [-12, hipY + 78] }, FT = { l: [14, 0], r: [-14, 0] };
+
+const layers = [];   // [name, drawFn, hidden]
+const L = (name, fn, hidden = false) => layers.push([name, fn, hidden]);
+
+L('backpack', (g) => { shape(g, () => { g.beginPath(); g.roundRect(...P(-sw * 1.12, shY + 2), sw * 2.24 * K, 74 * K, 16 * K); }, PACK); });
+for (const s of ['r', 'l']) {
+  L(`thigh_${s}`, (g) => line(g, [P(...HIP[s]), P(...KN[s])], LIMB));
+  L(`shin_${s}`, (g) => line(g, [P(...KN[s]), P(...FT[s])], LIMB));
+  L(`foot_${s}`, (g) => { const [x, y] = P(FT[s][0] + (s === 'l' ? 6 : -6), -4); g.fillStyle = INK; g.beginPath(); g.ellipse(x, y, 13 * K, 6.5 * K, 0, 0, Math.PI * 2); g.fill(); });
+}
+L('torso', (g) => {
+  const torso = () => { g.beginPath(); g.moveTo(...P(-sw * 0.55, shY)); g.lineTo(...P(sw * 0.55, shY)); g.quadraticCurveTo(...P(sw * 1.05, shY + 2), ...P(sw * 1.0, shY + 26)); g.lineTo(...P(hw, hipY + 6)); g.quadraticCurveTo(...P(0, hipY + 12), ...P(-hw, hipY + 6)); g.lineTo(...P(-sw, shY + 26)); g.quadraticCurveTo(...P(-sw * 1.05, shY + 2), ...P(-sw * 0.55, shY)); g.closePath(); };
+  shape(g, torso, GREEN, LW, { shade: () => { g.save(); torso(); g.clip(); g.fillStyle = 'rgba(30,45,32,0.28)'; g.beginPath(); g.moveTo(...P(-sw * 1.2, shY)); g.lineTo(...P(-sw * 0.35, shY)); g.lineTo(...P(-hw * 0.5, hipY + 14)); g.lineTo(...P(-sw * 1.2, hipY + 14)); g.closePath(); g.fill(); g.restore(); } });
+  // hood bunched at the collar
+  shape(g, () => { g.beginPath(); g.ellipse(...P(0, shY + 2), 17 * K, 6 * K, 0, 0, Math.PI * 2); }, GREEN_SH, LW * 0.8);
+  // zip, strings, pocket, backpack straps
+  line(g, [P(0, shY + 6), P(0, hipY + 6)], LW * 0.6);
+  for (const k of [-1, 1]) { line(g, [P(k * 7, shY + 4), P(k * 8, shY + 34)], LW * 0.55); g.fillStyle = '#f2f2f0'; g.beginPath(); g.arc(...P(k * 8, shY + 36), 2.6 * K, 0, 7); g.fill(); g.lineWidth = LW * 0.5; g.strokeStyle = INK; g.stroke(); }
+  g.fillStyle = GREEN_SH; g.beginPath(); g.roundRect(...P(-sw * 0.6, hipY - 46), sw * 1.2 * K, 26 * K, 6 * K); g.fill(); g.lineWidth = LW * 0.55; g.stroke();
+  for (const k of [-1, 1]) { g.fillStyle = STRAP; g.beginPath(); g.moveTo(...P(k * sw * 0.55, shY - 1)); g.lineTo(...P(k * sw * 0.85, shY - 1)); g.lineTo(...P(k * sw * 0.78, hipY - 18)); g.lineTo(...P(k * sw * 0.5, hipY - 18)); g.closePath(); g.fill(); g.lineWidth = LW * 0.55; g.stroke(); }
+});
+for (const s of ['r', 'l']) {
+  const sh = P(...SH[s]), el = P(...EL[s]), ha = P(...HA[s]);
+  L(`upperarm_${s}`, (g) => sleeve(g, sh, el, 7 * K));
+  L(`forearm_${s}`, (g) => { const e2 = [el[0] + (ha[0] - el[0]) * 0.82, el[1] + (ha[1] - el[1]) * 0.82]; line(g, [el, ha], LIMB); sleeve(g, el, e2, 7 * K); });
+  L(`hand_${s}`, (g) => { g.fillStyle = INK; g.beginPath(); g.arc(...ha, 5.4 * K, 0, Math.PI * 2); g.fill(); });
+}
+L('neck', (g) => line(g, [P(0, shY + 2), P(0, hc[1] + R * 0.85)], LIMB));
+L('head', (g) => { const c = P(...hc), head = () => { g.beginPath(); g.arc(...c, R * K, 0, Math.PI * 2); }; shape(g, head, SKIN, LW, { grainA: 0.12, shade: () => { g.save(); head(); g.clip(); g.fillStyle = 'rgba(140,128,140,0.16)'; g.beginPath(); g.arc(c[0] + R * 0.4 * K, c[1] + R * 0.12 * K, R * 0.92 * K, 0, 7); g.fill(); g.restore(); } }); });
+// face (facing camera, no turn)
+const ey = hc[1] - R * 0.04, gap = R * 0.34, er = R * 0.085, my = hc[1] + R * 0.45, mw = R * 0.18;
+for (const s of ['r', 'l']) { const x = (s === 'l' ? 1 : -1) * gap;
+  L(`eye_${s}`, (g) => { g.fillStyle = INK; g.beginPath(); g.ellipse(...P(x, ey), er * K, er * 1.25 * K, 0, 0, Math.PI * 2); g.fill(); });
+  L(`brow_${s}`, (g) => line(g, [P(x - R * 0.11, ey - R * 0.26), P(x + R * 0.11, ey - R * 0.26)], LW * 0.8));
+  L(`eye_${s}_closed`, (g) => { g.strokeStyle = INK; g.lineWidth = LW * 0.8; g.lineCap = 'round'; g.beginPath(); g.moveTo(...P(x - er * 1.4, ey)); g.quadraticCurveTo(...P(x, ey + er * 0.6), ...P(x + er * 1.4, ey)); g.stroke(); }, true);
+}
+const open = (g, h, w, teeth) => { const [mx, myy] = P(0, my); g.fillStyle = INK; g.beginPath(); g.ellipse(mx, myy, w * K, h * K, 0, 0, Math.PI * 2); g.fill(); if (teeth) { g.fillStyle = '#fff'; g.fillRect(mx - w * 0.7 * K, myy - h * 0.75 * K, w * 1.4 * K, h * 0.45 * K); } g.fillStyle = '#c8505a'; g.beginPath(); g.ellipse(mx, myy + h * 0.45 * K, w * 0.5 * K, h * 0.35 * K, 0, 0, Math.PI * 2); g.fill(); };
+L('mouth', (g) => line(g, [P(-mw * 0.75, my), P(mw * 0.75, my)], LW * 0.8));
+L('mouth_smile', (g) => { g.strokeStyle = INK; g.lineWidth = LW * 0.8; g.lineCap = 'round'; const [mx, myy] = P(0, my - R * 0.1); g.beginPath(); g.arc(mx, myy, mw * K, Math.PI * 0.2, Math.PI * 0.8); g.stroke(); }, true);
+L('mouth_wobble', (g) => line(g, Array.from({ length: 7 }, (_, i) => P(-mw + (i / 6) * mw * 2, my + Math.sin(i * 2) * R * 0.03)), LW * 0.8), true);
+L('mouth_o', (g) => open(g, R * 0.12, mw * 0.55), true);
+L('mouth_scream', (g) => open(g, R * 0.22, mw * 0.95, true), true);
+// hair (messy, profile-pic style), front view
+L('hair', (g) => { const k = R / 268, Q = (X, Y) => P(hc[0] + X * k * 1.07, hc[1] + Y * k);
+  const path = () => { g.beginPath(); g.moveTo(...Q(-272, 10));
+    const B = (a, b, c, d, e, f) => g.bezierCurveTo(...Q(a, b), ...Q(c, d), ...Q(e, f)), q = (a, b, c, d) => g.quadraticCurveTo(...Q(a, b), ...Q(c, d));
+    B(-298, -170, -170, -312, -20, -292); q(-30, -372, 40, -387); q(20, -322, 70, -297); q(120, -362, 190, -347); q(150, -297, 170, -267); B(278, -190, 298, -70, 272, 10);
+    q(248, -70, 205, -95); q(170, -90, 150, -60); q(120, -125, 60, -140); q(60, -100, 30, -75); q(-10, -150, -85, -160); q(-75, -120, -105, -95); q(-150, -150, -215, -140); q(-210, -100, -254, -30); g.closePath(); };
+  shape(g, path, HAIR, LW);
+  for (const [s2, y0] of [[-1, -150], [-1, -60], [1, -170], [1, -80]]) shape(g, () => { g.beginPath(); g.moveTo(...Q(s2 * 250, y0 - 30)); g.lineTo(...Q(s2 * 300, y0 + 6)); g.lineTo(...Q(s2 * 262, y0 + 30)); g.closePath(); }, HAIR, LW * 0.8);
+  g.strokeStyle = 'rgba(160,130,110,0.5)'; g.lineWidth = LW * 0.5; g.lineCap = 'round'; for (const [x0, y0, x1, y1] of [[-160, -215, -95, -170], [40, -250, 110, -185]]) { g.beginPath(); g.moveTo(...Q(x0, y0)); g.quadraticCurveTo(...Q((x0 + x1) / 2 + 18, (y0 + y1) / 2 - 14), ...Q(x1, y1)); g.stroke(); } });
+
+// ---- render every layer + a composite preview, build the PSD
+const out = { layers: [], preview: null };
+const comp = document.createElement('canvas'); comp.width = CW; comp.height = CH; const cg = comp.getContext('2d');
+const children = [];
+for (const [name, fn, hidden] of layers) { const c = document.createElement('canvas'); c.width = CW; c.height = CH; fn(c.getContext('2d')); if (!hidden) cg.drawImage(c, 0, 0);
+  children.push({ name, canvas: c, hidden, top: 0, left: 0 }); out.layers.push([name, c.toDataURL('image/png'), hidden]); }
+out.preview = comp.toDataURL('image/png');
+const psd = { width: CW, height: CH, children };
+const buf = agPsd.writePsd(psd);
+let bin = ''; const u8 = new Uint8Array(buf); for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+out.psd = btoa(bin);
+window.OUT = out;
+</script></body></html>

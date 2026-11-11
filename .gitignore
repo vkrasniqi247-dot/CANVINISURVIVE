@@ -2,3 +2,5 @@
 frames/
 renders/
 *.avi
+node_modules/
+out/
