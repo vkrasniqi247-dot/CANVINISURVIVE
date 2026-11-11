@@ -86,7 +86,6 @@ export function poseVini(rig, o) {
   const sq = (o.squash || 0) + rig.contact * (o.walkSquash ?? 0.6);
   if (sq) { const c = pose.local[bi.chest]; c.scale_x *= 1 - 0.035 * sq; c.scale_y *= 1 + 0.025 * sq; }
   // secondary motion: hair and backpack lag behind the body (computed from motion history by the scene)
-  if (o.hairLag) pose.local[bi.hair].rotation += o.hairLag;
   // ---- face
   const F = FACES[o.expr || 'neutral'] || FACES.neutral;
   const blink = o.blink !== false && ((t + (o.seed || 0) * 1.37) % 3.4 + 3.4) % 3.4 < 0.12;
@@ -115,8 +114,9 @@ export function poseVini(rig, o) {
   pose.updateWorld(sk);
   if (rig.kneeDir) kneesForward(rig, rig.kneeDir);
   levelFeet(rig, view !== 'front' ? 1 : 0.6);
-  // backpack: a small lag rotation about the shoulders, applied as a world offset in drawVini
-  rig.packLag = o.packLag || 0;
+  // hair and backpack lag (secondary motion) are applied as rotations in drawVini: hair about the head
+  // centre (the cap slides over the skull), the pack about its top (it hangs off the shoulders)
+  rig.hairLag = o.hairLag || 0; rig.packLag = o.packLag || 0;
   return pose;
 }
 
@@ -151,8 +151,9 @@ function plantedFeet(rig, o, ca) {
     const s = (p + ph) / 2, n = Math.floor(s), f = s - n, mv = Math.min(1, f * 2);
     const worldX = 2 * L * (n + smooth(mv)) - ph * L - 0.5 * L;   // where this foot is along the path
     const b = sk.bones[bi[`ik_foot_${side}`]].setup, F = pose.local[bi[`ik_foot_${side}`]];
-    const rel = dir * (worldX - ad) * K * ramp;
-    F.x = b.x * lerp(1, ca, 0.95) + rel; F.y = b.y + (mv < 1 && ad > 0.01 ? Math.sin(Math.PI * mv) * lift * K : 0);
+    // walkMix < 1 brings the feet back together after the last step (the moving foot lifts in a small arc)
+    const wm = o.walkMix ?? 1, rel = dir * (worldX - ad) * K * ramp * wm;
+    F.x = b.x * lerp(1, ca, 0.95) + rel; F.y = b.y + (mv < 1 && ad > 0.01 ? Math.sin(Math.PI * mv) * lift * K : 0) + Math.abs(rel / wm || 0) * wm * (1 - wm) * 1.6;
     rig.footRel[side] = rel;
     // heel-toe: toe pushes off as the foot lifts, toe comes up before the heel strikes (only while swinging)
     if (mv < 1 && ad > 0.01) rig.footRoll[side] = dir * (-24 * Math.sin(Math.PI * clamp(mv / 0.4)) * (mv < 0.4 ? 1 : 0) + 18 * Math.sin(Math.PI * clamp((mv - 0.5) / 0.5) * 0.5) * (mv > 0.5 ? 1 : 0) * (1 - smooth(clamp((mv - 0.92) / 0.08)))) * ramp;
@@ -167,20 +168,27 @@ function plantedFeet(rig, o, ca) {
 // turn < 0 mirrors him (and swaps which arm/prop is which, so 'left'/'right' always mean screen sides).
 export function drawVini(g, rig, o) {
   const tn = o.turn || 0, mir = tn < 0;
+  // screen-space options (lean, headTilt, hipX, lags: + = toward screen-left / counter-clockwise) keep their
+  // on-screen meaning when he is mirrored, so nothing pops as the turn crosses 0
+  const neg = (v) => (v ? -v : v);
   const q = mir ? { ...o, turn: -tn, arms: o.arms ? [o.arms[1], o.arms[0]] : o.arms, armMix: o.armMix ? [o.armMix[1], o.armMix[0]] : o.armMix,
-    look: o.look ? [-o.look[0], o.look[1]] : o.look, walkDist: o.walkDist != null ? -o.walkDist : o.walkDist } : o;
+    look: o.look ? [-o.look[0], o.look[1]] : o.look, walkDist: o.walkDist != null ? -o.walkDist : o.walkDist,
+    lean: neg(o.lean), headTilt: neg(o.headTilt), hipX: neg(o.hipX), hairLag: neg(o.hairLag), packLag: neg(o.packLag) } : o;
   const pose = poseVini(rig, q), sc = (o.s ?? 1) / K, fx = (o.flip ? -1 : 1) * (mir ? -1 : 1);
   if (o.shadow !== false) { const a = o.shadowA ?? 0.36; g.fillStyle = `rgba(25,20,16,${a})`; g.beginPath(); g.ellipse(o.x, o.y + 2, 60 * o.s * lerp(1, 0.75, Math.abs(Math.sin(tn * Math.PI / 2))), 11 * o.s, 0, 0, Math.PI * 2); g.fill(); }
   g.save(); g.translate(o.x, o.y); g.scale(sc * fx, -sc);
   if (o.alpha != null) g.globalAlpha *= o.alpha;
-  const packSlot = rig.si.backpack, chest = pose.world[rig.bi.chest];
+  const packSlot = rig.si.backpack, hairSlot = rig.si.hair, chest = pose.world[rig.bi.chest], head = pose.world[rig.bi.head];
   for (const qd of pose.quads(rig.sk)) {
     const im = rig.imgs[qd.attachment?.name] || rig.imgs[qd.image]; if (!im) continue;
     const [p0, p1, , p3] = qd.positions, w = im.width, h = im.height;
     g.save(); g.globalAlpha *= qd.color?.[3] ?? 1;
-    if (qd.slot === packSlot && rig.packLag) { // swing the pack about the top of the chest
-      const px = chest.tx + chest.a * 190, py = chest.ty + chest.b * 190, r = -rig.packLag / DEG;
-      g.translate(px, py); g.rotate(r); g.translate(-px, -py); }
+    if (qd.slot === packSlot && rig.packLag) { // swing the pack about the top of the chest (bottom trails)
+      const px = chest.tx + chest.a * 190, py = chest.ty + chest.b * 190;
+      g.translate(px, py); g.rotate(-rig.packLag / DEG); g.translate(-px, -py); }
+    if (qd.slot === hairSlot && rig.hairLag) { // slide the hair over the skull (top trails)
+      const px = head.tx + head.a * 120, py = head.ty + head.b * 120;
+      g.translate(px, py); g.rotate(rig.hairLag / DEG); g.translate(-px, -py); }
     g.transform((p1[0] - p0[0]) / w, (p1[1] - p0[1]) / w, (p3[0] - p0[0]) / h, (p3[1] - p0[1]) / h, p0[0], p0[1]);
     g.drawImage(im, 0, 0); g.restore();
   }

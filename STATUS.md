@@ -43,5 +43,16 @@ Target: visual quality ≥ 9.5/10. Each stage: what was done, the score, what's 
 Score after Stage 1: design 8.3 · motion 7.4 · acting 6.0 · camera 6.0 · labels & notebook 7.5 · **overall 7.6**.
 Next: Stage 2 (follow-through, breathing, d2 acting beats).
 
+## Stage 2 — acting and secondary motion (AUDIT #2, #4, #5, #6) ✅
+- `follow()` in `rig.js`: a damped spring driven by the history of a driver function (convolution of the driver's acceleration with the spring's impulse response over the last 1.6 s, fixed 1/120 s samples). Any frame renders on its own and always gives the same answer, no state, no randomness.
+- Hair slides over the skull (rotates about the head centre) and the backpack swings about its top; a light quick spring for hair, a heavy slow one for the pack. Drivers: d1 = head position along his body axis (he starts lying down), d2 = startle hop + step back + turn, d3 = walk travel + turn.
+- **Decision:** `lean`, `headTilt`, `hipX`, `hairLag`, `packLag` are screen-space (+ = toward screen-left) and are negated when he's mirrored, so nothing pops when `turn` crosses 0.
+- Sleep: slow visible breath (2.9 s), a stir as the phone starts buzzing (30.2), a jolt when his eyes open (30.7); faster panicked breathing after. Landing squash on the get-up.
+- d2 re-staged: reads the alert → flinches at the shout (36.85, hand to face, body jerks away) → eyes, head, body turn to the window → curious lean in → backs off a step (38.95) and closes his feet → gasps and freezes at the silence (40.0, breath held, idle slowed to 12 %) → turns back to us (41.0–41.6). d3 starts from where the step left him.
+- Walk (from Stage 1): arm swing tied to the steps, lean that builds with speed, hips lowest at contact, contact squash.
+
+Score after Stage 2: design 8.3 · motion 8.0 · acting 7.4 · camera 6.0 · labels & notebook 7.5 · **overall 8.0**.
+Next: Stage 3 (punch-ins, d4 push-in, transitions).
+
 ## HUMAN TASKS
 (kept up to date; see the end of the file)
