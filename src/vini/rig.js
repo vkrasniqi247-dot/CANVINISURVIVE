@@ -194,8 +194,9 @@ export function drawVini(g, rig, o) {
   }
   g.restore();
   if (o.props) for (const [side, bone] of [['left', mir ? 'hand_l' : 'hand_r'], ['right', mir ? 'hand_r' : 'hand_l']]) {
-    const fn = o.props[side]; if (!fn) continue; const w = pose.world[rig.bi[bone]];
-    fn(g, [o.x + w.tx * sc * fx, o.y - w.ty * sc]);
+    const fn = o.props[side]; if (!fn) continue; const w = pose.world[rig.bi[bone]], hd = pose.world[rig.bi.head];
+    // info.head = centre of his face on screen (for props that light it, e.g. the phone screen)
+    fn(g, [o.x + w.tx * sc * fx, o.y - w.ty * sc], { head: [o.x + (hd.tx + hd.a * 120) * sc * fx, o.y - (hd.ty + hd.b * 120) * sc], s: o.s ?? 1 });
   }
   return pose;
 }

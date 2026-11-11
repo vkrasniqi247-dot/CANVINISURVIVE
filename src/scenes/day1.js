@@ -1,7 +1,7 @@
 // src/scenes/day1.js — DAY 1 wake-up test (episode time 28.6 → 60.2), ported shot-for-shot from the v1 opening.
 // Same timing, framing and labels as v1. Changes kept from v2: a smoother get-up and handwriting write-on on the
 // notebook page. Vini is the Rigby2D rig (src/vini/rig.js). Every function here is a pure function of time.
-import { W, H, RED, INK, clamp, lerp, ease, alpha, radGrad, sm, so, pop, settle, armTrack, pick, track, camBegin, camEnd, punches, pageTurn, toScreen, camShake, note, arrowTo, bigText, fade, vignette, dayCounter, notebook, inkPath, tick, cross, writeOn } from '../kit/kit.js';
+import { W, H, RED, INK, clamp, lerp, ease, alpha, radGrad, sm, so, pop, settle, armTrack, pick, track, camBegin, camEnd, punches, pageTurn, toScreen, camShake, note, arrowTo, bigText, fade, vignette, dayCounter, notebook, inkPath, tick, cross, writeOn, pen } from '../kit/kit.js';
 import { drawVini, follow } from '../vini/rig.js';
 
 // ---------- secondary motion + breathing (deterministic: driven by motion history, see follow() in rig.js) ----------
@@ -33,7 +33,15 @@ function phone(g, x, y, s, t, mode = 'off', rot = 0) {
   if (mode === 'buzz') { g.strokeStyle = alpha(INK, 0.8); g.lineWidth = 3; for (const sd of [-1, 1]) for (let i = 0; i < 2; i++) { const ph = (t * 4 + i * 0.5) % 1; g.globalAlpha = 1 - ph; g.beginPath(); g.arc(x, y, (40 + i * 14 + ph * 10) * s, sd > 0 ? -0.6 : Math.PI - 0.6, sd > 0 ? 0.6 : Math.PI + 0.6); g.stroke(); } g.globalAlpha = 1; }
 }
 const PHONE_HAND = [-12, 30, 34];                 // hand in front of the chest (x in, y below shoulder, forward)
-const inHand = (gt, mode) => (g2, h) => phone(g2, h[0] + 2, h[1] - 30, 0.52, gt, mode);
+// phone in his hand: the screen's light spills up over his face and hoodie (AUDIT #11)
+const inHand = (gt, mode) => (g2, h, info) => { phone(g2, h[0] + 2, h[1] - 30, 0.52, gt, mode); if (info && mode !== 'off') faceGlow(g2, gt, mode, [h[0] + 2, h[1] - 30], info.head, info.s); };
+function faceGlow(g, t, mode, ph, head, s) {
+  const col = mode === 'alert' ? '#ff4a36' : '#ffd6a0', a = mode === 'alert' ? 0.3 + 0.09 * Math.sin(t * 12) : 0.2 + 0.08 * Math.sin(t * 60);
+  g.save(); g.globalCompositeOperation = 'screen';
+  g.fillStyle = radGrad(g, head[0], head[1] + 10 * s, 0, 70 * s, [alpha(col, a), alpha(col, a * 0.45), alpha(col, 0)]); g.beginPath(); g.arc(head[0], head[1] + 10 * s, 70 * s, 0, 7); g.fill();
+  const mx = (ph[0] + head[0]) / 2, my = (ph[1] + head[1]) / 2;     // light between the screen and his face
+  g.fillStyle = radGrad(g, mx, my, 0, 62 * s, [alpha(col, a * 0.7), alpha(col, 0)]); g.beginPath(); g.arc(mx, my, 62 * s, 0, 7); g.fill();
+  g.restore(); }
 
 // ---------- d1: DAY 1 — asleep → phone buzzing → gets up → grabs it → EMERGENCY ALERT ----------
 // Get-up (smoother than v1's 0.55 s spring): a small curl wind-up, then he swings round and rises over 0.85 s,
@@ -136,21 +144,36 @@ function d4(g, gt, A) { const t = gt - 46.6, FZ = 46.45; const c = doorScene(g, 
 
 // ---------- d5: RULE 1 — stay inside (handwritten on the notebook page) ----------
 const wk = (gt, at, str, cps = 18) => clamp((gt - at) / Math.max(0.25, str.length / cps));
-function doorDoodle(g, x, y, k, lockK) { inkPath(g, [[x - 70, y + 110], [x - 70, y - 110], [x + 70, y - 110], [x + 70, y + 110]], k, 7); inkPath(g, [[x + 40, y], [x + 50, y]], k, 9);
+// strokes [pts, width] drawn one after another over k (0..1), by length; the pen sits on the active stroke tip
+function penStrokes(g, strokes, k) {
+  const len = (p) => p.slice(1).reduce((s, q, i) => s + Math.hypot(q[0] - p[i][0], q[1] - p[i][1]), 0), Ls = strokes.map(([p]) => len(p)), T = Ls.reduce((a, b) => a + b, 0);
+  let u = clamp(k) * T, tip = null;
+  strokes.forEach(([p, w], i) => { const f = clamp(u / Ls[i]); u -= Ls[i]; if (f <= 0) return; inkPath(g, p, f, w);
+    if (f < 1) { let r = f * Ls[i]; for (let j = 1; j < p.length; j++) { const d = Math.hypot(p[j][0] - p[j - 1][0], p[j][1] - p[j - 1][1]); if (r <= d) { tip = [lerp(p[j - 1][0], p[j][0], r / d), lerp(p[j - 1][1], p[j][1], r / d)]; break; } r -= d; } } });
+  if (tip && k < 1) pen(g, tip[0], tip[1]);
+}
+// ease the drawing so the first strokes go down fast (no lone specks), slowing as it finishes
+const drawK = (gt, at, dur = 0.48) => ease.out(clamp((gt - at + 0.08) / dur));
+function doorDoodle(g, x, y, k, lockK) { penStrokes(g, [[[[x - 70, y + 110], [x - 70, y - 110], [x + 70, y - 110], [x + 70, y + 110]], 7], [[[x + 40, y], [x + 50, y]], 9]], k);
   if (lockK > 0) { const s = ease.outBack(clamp(lockK)); g.save(); g.translate(x + 5, y + 10); g.scale(s, s); g.fillStyle = '#d8a030'; g.strokeStyle = INK; g.lineWidth = 6; g.beginPath(); g.roundRect(-34, -10, 68, 56, 8); g.fill(); g.stroke(); g.beginPath(); g.arc(0, -10, 22, Math.PI, 0); g.stroke(); g.fillStyle = INK; g.beginPath(); g.arc(0, 16, 7, 0, 7); g.fill(); g.restore(); } }
-function windowDoodle(g, x, y, k, curtainK) { inkPath(g, [[x - 90, y - 90], [x + 90, y - 90], [x + 90, y + 90], [x - 90, y + 90], [x - 90, y - 90]], k, 7); inkPath(g, [[x, y - 90], [x, y + 90]], k, 4); inkPath(g, [[x - 90, y], [x + 90, y]], k, 4);
+function windowDoodle(g, x, y, k, curtainK) { penStrokes(g, [[[[x - 90, y - 90], [x + 90, y - 90], [x + 90, y + 90], [x - 90, y + 90], [x - 90, y - 90]], 7], [[[x, y - 90], [x, y + 90]], 4], [[[x - 90, y], [x + 90, y]], 4]], k);
   const c = ease.inOut(clamp(curtainK)); if (c > 0) for (const sd of [-1, 1]) { const w = 92 * c; g.fillStyle = '#b84a3a'; g.strokeStyle = INK; g.lineWidth = 5; g.beginPath(); g.moveTo(x + sd * 96, y - 100); g.lineTo(x + sd * (96 - w), y - 100); for (let i = 0; i <= 6; i++) g.lineTo(x + sd * (96 - w + Math.sin(i * 1.4) * 6), y - 100 + i * 34); g.lineTo(x + sd * 96, y + 104); g.closePath(); g.fill(); g.stroke(); } }
 function awayDoodle(g, A, x, y, k, gt, t0) { windowDoodle(g, x + 60, y - 10, k, 0); const p = sm(gt, t0 + 0.2, t0 + 0.9), px = x - 60 - 110 * p;
   if (k > 0.6) { g.save(); g.globalAlpha = clamp((k - 0.6) * 2.5); drawVini(g, A.vini, { x: px, y: y + 110, s: 0.55, t: gt, walkDist: -110 * p / 0.55, stride: 22, expr: 'worried', look: [-1, 0], arms: ['relaxed', 'relaxed'], shadow: false }); g.restore(); arrowTo(g, x - 10, y + 125, x - 190, y + 125, p, RED, 0); } }
-function d5(g, gt, A) { const t = gt - 52.6; notebook(g, gt);
-  writeOn(g, 'RULE 1', 360, 165, wk(gt, 52.78, 'RULE 1', 9), { size: 92, color: RED, font: 'Permanent Marker', rot: -0.02 });
-  writeOn(g, 'STAY INSIDE', W * 0.6, 168, wk(gt, 54.3, 'STAY INSIDE', 11), { size: 78, color: '#2a2622', font: 'Permanent Marker' });
+function d5(g, gt, A) { const t = gt - 52.6, land = so(gt, FLIP0, FLIP1 + 0.25);
+  g.fillStyle = '#0d0c0a'; g.fillRect(0, 0, W, H);
+  g.save(); g.translate(W / 2, H / 2); g.rotate(-0.035 * (1 - land) + settle(gt, FLIP1 + 0.05, 0.006, 11, 6)); g.translate(-W / 2 + 60 * (1 - land), -H / 2 + 26 * (1 - land));
+  notebook(g, gt);
+  writeOn(g, 'RULE 1', 360, 165, wk(gt, 52.62, 'RULE 1', 12), { size: 92, color: RED, font: 'Permanent Marker', rot: -0.02 });
+  inkPath(g, [[262, 222], [362, 216], [462, 220]], ease.out(clamp((gt - 53.15) / 0.3)), 7, RED);           // underline
+  writeOn(g, 'STAY INSIDE', W * 0.6, 168, wk(gt, 54.2, 'STAY INSIDE', 11), { size: 78, color: '#2a2622', font: 'Permanent Marker' });
   const cols = [[520, 'lock|the door', 55.8], [960, 'close|the curtains', 56.72], [1400, 'stay away|from windows', 58.24]];
-  cols.forEach(([x, str, at], i) => { const k = sm(gt, at - 0.1, at + 0.55), y = 520;
+  const doodling = cols.some(([, , at]) => { const k = drawK(gt, at); return k > 0 && k < 1; });   // only one pen on the page at a time
+  cols.forEach(([x, str, at], i) => { const k = drawK(gt, at), y = 520;
     if (i === 0) doorDoodle(g, x, y, k, sm(gt, at + 0.35, at + 0.75)); if (i === 1) windowDoodle(g, x, y, k, sm(gt, at + 0.3, at + 0.9)); if (i === 2) awayDoodle(g, A, x, y, k, gt, at);
-    const ls = str.split('|'); let t0 = at + 0.15; ls.forEach((l, j) => { writeOn(g, l, x, 800 + j * 52, wk(gt, t0, l, 22), { size: 54 }); t0 += l.length / 22 + 0.05; });
+    const ls = str.split('|'); let t0 = at + 0.42; ls.forEach((l, j) => { writeOn(g, l, x, 800 + j * 52, wk(gt, t0, l, 24), { size: 54, pen: !doodling }); t0 += Math.max(0.25, l.length / 24) + 0.05; });
     tick(g, x + 125, 470, 34, sm(gt, at + 0.75, at + 1.05)); });
-  vignette(g, 0.2); }
+  g.restore(); vignette(g, 0.2); }
 
 const FN = { d1, d2, d3, d4, d5 };
 const shotAt = (gt) => SHOTS.find(([, a, b]) => gt >= a && gt < b) || SHOTS[SHOTS.length - 1];

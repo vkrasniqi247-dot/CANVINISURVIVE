@@ -64,5 +64,11 @@ Next: Stage 3 (punch-ins, d4 push-in, transitions).
 Score after Stage 3: design 8.3 · motion 8.0 · acting 7.6 · camera 8.6 · labels & notebook 7.6 · **overall 8.4**.
 Next: Stage 4 (notebook polish, phone glow).
 
+## Stage 4 — notebook polish and phone (AUDIT #9, #10, #11) ✅
+- The page flips in over the freeze, slides 60 px and untwists 2° as it lands with a tiny settle; "RULE 1" starts writing at 52.62 (was 52.78) at 12 cps and gets a red underline, so the page is never empty (#10). STAY INSIDE moved 0.1 s earlier, still on the voice.
+- Doodles are drawn by the pen, stroke by stroke in order (door frame, then handle; window frame, then the cross), with an ease-out so the first stroke goes down fast and a shape reads at once: no stray specks (#9). Only one pen is ever on the page: the text pen hides while a doodle is being drawn.
+- Phone: held at chest height, larger (Stage 1); its screen light now spills over his face and hoodie (screen blend, pulsing with the alert) (#11). The rig passes each prop the face position.
+- Full-quality render: `out/day1_test.mp4` (`--crf=18`), sheet `out/day1_contact.png`.
+
 ## HUMAN TASKS
 (kept up to date; see the end of the file)
