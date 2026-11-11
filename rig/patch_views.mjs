@@ -3,8 +3,8 @@
 // lines up exactly when it reuses the base attachment's offset. Its own (autorig 'extra') slot is removed.
 // The runtime then swaps views with pose.attachment[slot] = 'head_t34' etc.
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
-const HERE = path.dirname(fileURLToPath(import.meta.url)), F = path.join(HERE, 'vini_export/vini.json');
-const V = JSON.parse(fs.readFileSync(path.join(HERE, 'variants.json'), 'utf8'));
+const NAME = process.argv[2] || 'vini', HERE = path.dirname(fileURLToPath(import.meta.url)), F = path.join(HERE, `${NAME}_export/${NAME}.json`);
+const V = JSON.parse(fs.readFileSync(path.join(HERE, NAME === 'vini' ? 'variants.json' : `${NAME}_variants.json`), 'utf8'));
 const j = JSON.parse(fs.readFileSync(F, 'utf8')), atts = j.skins[0].attachments;
 let n = 0;
 for (const [name, base] of Object.entries(V)) {

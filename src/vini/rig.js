@@ -9,16 +9,19 @@
 import { readSkeletonJson, Pose } from '../rigby/core/index.js';
 
 // url(p) maps a file inside public/vini/ to a fetchable URL (staticFile in Remotion)
-export async function loadVini(url) {
-  const json = await (await fetch(url('vini.json'))).json();
-  const { skeleton } = readSkeletonJson(json, 'vini');
+// Any character built by rig/build_rig.mjs (vini, zombie) shares this runtime: same bone names, same canvas.
+export const loadVini = (url) => loadRig(url, 'vini.json');
+export async function loadRig(url, file) {
+  const json = await (await fetch(url(file))).json();
+  const { skeleton } = readSkeletonJson(json, file.replace('.json', ''));
   const names = new Set();
   for (const atts of Object.values(json.skins[0].attachments)) for (const n of Object.keys(atts)) names.add(n);
   const imgs = {};
   await Promise.all([...names].map(async (n) => { const im = new Image(); im.src = url(`images/${n}.png`); await im.decode(); imgs[n] = im; }));
   const bi = Object.fromEntries(skeleton.bones.map((b, i) => [b.name, i]));
   const si = Object.fromEntries(skeleton.slots.map((s, i) => [s.name, i]));
-  const rig = { sk: skeleton, pose: new Pose(skeleton), imgs, bi, si, anim: Object.fromEntries(skeleton.animations.map((a) => [a.name, a])) };
+  const has = new Set(Object.entries(json.skins[0].attachments).flatMap(([sl, atts]) => Object.keys(atts).map((a) => `${sl}/${a}`)));
+  const rig = { sk: skeleton, pose: new Pose(skeleton), imgs, bi, si, has, anim: Object.fromEntries(skeleton.animations.map((a) => [a.name, a])) };
   // setup-pose foot angles (to keep the feet level whatever the IK does to the shins)
   rig.pose.reset(skeleton); rig.pose.updateWorld(skeleton);
   rig.footRest = Object.fromEntries(['l', 'r'].map((s) => [s, worldAngle(rig.pose.world[bi[`foot_${s}`]])]));
@@ -26,7 +29,7 @@ export async function loadVini(url) {
   const S = skeleton.slots.map((s) => s.name), FRONT = S.map((_, i) => i);
   const farArm = ['upperarm_l', 'forearm_l', 'hand_l'], farLeg = ['thigh_l', 'shin_l', 'foot_l'], nearLeg = ['thigh_r', 'shin_r', 'foot_r'];
   const rest = S.filter((n) => ![...farArm, ...farLeg, ...nearLeg, 'backpack'].includes(n));
-  rig.order = { front: FRONT, turned: ['backpack', ...farArm, ...farLeg, ...nearLeg, ...rest].map((n) => si[n]) };
+  rig.order = { front: FRONT, turned: ['backpack', ...farArm, ...farLeg, ...nearLeg, ...rest].filter((n) => si[n] !== undefined).map((n) => si[n]) };
   return rig;
 }
 const DEG = 180 / Math.PI;
@@ -40,6 +43,7 @@ const FACES = {
   neutral: { mouth: 'mouth', brow: [0, 0] }, worried: { mouth: 'mouth_wobble', brow: [12, 8] }, scared: { mouth: 'mouth_wobble', brow: [18, 14] },
   terror: { mouth: 'mouth_scream', brow: [22, 18] }, shock: { mouth: 'mouth_o', brow: [0, 22] }, happy: { mouth: 'mouth_smile', brow: [0, 6] },
   determined: { mouth: 'mouth', brow: [-16, -6] }, exhausted: { mouth: 'mouth_o', brow: [6, -4] }, sleep: { mouth: 'mouth', brow: [0, -4], closed: 1 }, relief: { mouth: 'mouth_smile', brow: [10, 6], closed: 1 },
+  zombie: { mouth: 'mouth', brow: [6, -2] }, groan: { mouth: 'mouth_o', brow: [10, -4] },
 };
 const MOUTHS = ['mouth', 'mouth_smile', 'mouth_wobble', 'mouth_o', 'mouth_scream'];
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -74,6 +78,7 @@ export function poseVini(rig, o) {
   for (const s of ['l', 'r']) { const F = pose.local[bi[`ik_foot_${s}`]]; F.x *= lerp(1, ca, 0.95); }
   rig.footRel = { l: 0, r: 0 }; rig.footRoll = { l: 0, r: 0 }; rig.stepPhase = null; rig.contact = 0;
   if (o.walkDist != null) plantedFeet(rig, o, ca);
+  if (o.march != null) march(rig, o);
   if (o.crouch) { pose.local[bi.hip].y -= o.crouch * K;
     // front view: a bent knee points at the camera, so the legs foreshorten instead of bowing out like a frog
     const w = clamp(1 - turn / 0.35); if (w > 0 && o.crouch > 0) { const f = 1 - (o.crouch * K * 0.92 * w) / 562;
@@ -98,14 +103,15 @@ export function poseVini(rig, o) {
   // ---- face
   const F = FACES[o.expr || 'neutral'] || FACES.neutral;
   const blink = o.blink !== false && blinking(t + (o.seed || 0) * 1.37);
-  for (const m of MOUTHS) pose.attachment[si[m]] = m === F.mouth ? m : null;
+  for (const m of MOUTHS) if (si[m] !== undefined) pose.attachment[si[m]] = m === F.mouth ? m : null;
   const closed = F.closed || blink, hideFar = turn > 0.8;
   // the face slides round the head toward the turn side, and the eyes get closer together (foreshortening)
   const fc = HEADR * 0.6 * sa, squeeze = Math.cos(a * 0.8);
   const shiftX = (x0) => x0 * squeeze + fc - x0;                         // screen-x change for a feature at x0
+  const sk2 = o.skin || {}, pickAtt = (slot, names) => names.find((n) => rig.has.has(`${slot}/${n}`)) ?? null;
   for (const s of ['l', 'r']) {
     const x0 = (s === 'l' ? 1 : -1) * GAP, far = s === 'l' && hideFar;
-    pose.attachment[si[`eye_${s}`]] = closed || far ? null : `eye_${s}`;
+    pose.attachment[si[`eye_${s}`]] = closed || far ? null : pickAtt(`eye_${s}`, [`eye_${s}${sk2.eyes ?? ''}`, `eye_${s}`]);
     pose.attachment[si[`eye_${s}_closed`]] = closed && !far ? `eye_${s}_closed` : null;
     pose.attachment[si[`brow_${s}`]] = far ? null : `brow_${s}`;
     const br = pose.local[bi[`brow_${s}`]]; br.rotation += (s === 'r' ? -1 : 1) * F.brow[0]; br.x += F.brow[1]; br.y -= shiftX(x0);
@@ -114,9 +120,14 @@ export function poseVini(rig, o) {
   pose.local[bi.mouth].y -= fc * 1.08;
   if (o.look) for (const n of ['eye_l', 'eye_r']) { const b = bi[n]; pose.local[b].x += o.look[1] * -10; pose.local[b].y -= o.look[0] * 12 * lerp(1, 0.5, sa); }   // + = screen-right
   // ---- view art
+  // ---- view + outfit art: '<part><outfit><view>' falling back to '<part><outfit>', '<part><view>', '<part>'
   const v = view === 'front' ? '' : view === 't34' ? '_t34' : '_side';
-  pose.attachment[si.torso] = `torso${v}`; pose.attachment[si.backpack] = `backpack${v}`; pose.attachment[si.hair] = `hair${v}`;
-  for (const s of ['l', 'r']) pose.attachment[si[`foot_${s}`]] = view === 'front' ? `foot_${s}` : `foot_${s}_side`;
+  const part = (slot, base, suf) => { if (si[slot] === undefined) return null; const a = pickAtt(slot, [`${base}${suf ?? ''}${v}`, `${base}${suf ?? ''}`, `${base}${v}`, base]); pose.attachment[si[slot]] = a; return a; };
+  const tor = part('torso', 'torso', sk2.torso); part('backpack', 'backpack'); part('hair', 'hair', sk2.hair); part('head', 'head', sk2.head);
+  for (const s of ['l', 'r']) { part(`upperarm_${s}`, `upperarm_${s}`, sk2.arms); part(`forearm_${s}`, `forearm_${s}`, sk2.arms);
+    pose.attachment[si[`foot_${s}`]] = pickAtt(`foot_${s}`, view === 'front' ? [`foot_${s}`] : [`foot_${s}_side`, `foot_${s}`]); }
+  // a character with no turned torso art gets its front torso narrowed instead
+  rig.torsoSquash = view !== 'front' && tor && !tor.endsWith(v) ? lerp(1, 0.62, sa) : 1;
   pose.drawOrder = view === 'front' ? rig.order.front.slice() : rig.order.turned.slice();
   // knees point the way he travels, or the way he faces once turned (no frog-legged crouch)
   rig.kneeDir = view !== 'front' ? 1 : o.walkDist != null ? (o.walkDist < 0 ? -1 : 1) : 0;
@@ -162,7 +173,8 @@ function plantedFeet(rig, o, ca) {
     const b = sk.bones[bi[`ik_foot_${side}`]].setup, F = pose.local[bi[`ik_foot_${side}`]];
     // walkMix < 1 brings the feet back together after the last step (the moving foot lifts in a small arc)
     const wm = o.walkMix ?? 1, rel = dir * (worldX - ad) * K * ramp * wm;
-    F.x = b.x * lerp(1, ca, 0.95) + rel; F.y = b.y + (mv < 1 && ad > 0.01 ? Math.sin(Math.PI * mv) * lift * K : 0) + Math.abs(rel / wm || 0) * wm * (1 - wm) * 1.6;
+    const lf = side === 'r' ? 1 - (o.drag ?? 0) * 0.75 : 1;          // o.drag: the right foot barely lifts (a zombie's dragged leg)
+    F.x = b.x * lerp(1, ca, 0.95) + rel; F.y = b.y + (mv < 1 && ad > 0.01 ? Math.sin(Math.PI * mv) * lift * lf * K : 0) + Math.abs(rel / wm || 0) * wm * (1 - wm) * 1.6;
     rig.footRel[side] = rel;
     // heel-toe: toe pushes off as the foot lifts, toe comes up before the heel strikes (only while swinging)
     if (mv < 1 && ad > 0.01) rig.footRoll[side] = dir * (-24 * Math.sin(Math.PI * clamp(mv / 0.4)) * (mv < 0.4 ? 1 : 0) + 18 * Math.sin(Math.PI * clamp((mv - 0.5) / 0.5) * 0.5) * (mv > 0.5 ? 1 : 0) * (1 - smooth(clamp((mv - 0.92) / 0.08)))) * ramp;
@@ -171,6 +183,19 @@ function plantedFeet(rig, o, ca) {
   const hip = pose.local[bi.hip]; hip.y += (pass * 2.2 - contact * 2.5) * K * ramp;
   pose.local[bi.chest].rotation += Math.sin(Math.PI * p) * 1.8 * ca;
   rig.contact = contact * ramp;
+}
+
+// Stepping in place (for walking straight at the camera; the scene moves and scales him): o.march = steps taken.
+// One foot lifts while the other bears weight; the hips sway over the standing foot and dip as the step lands.
+// o.drag (0..1) makes the right leg drag (barely lifts, a heavier dip) for the zombie lurch.
+function march(rig, o) {
+  const { pose, bi } = rig, p = o.march, lift = (o.lift ?? 10) * K, drag = o.drag ?? 0;
+  for (const [side, ph] of [['l', 0], ['r', 1]]) { const u = (((p + ph) % 2) + 2) % 2; if (u >= 1) continue;
+    const F = pose.local[bi[`ik_foot_${side}`]]; F.y += Math.sin(Math.PI * u) * lift * (side === 'r' ? 1 - drag * 0.8 : 1); F.x += (side === 'l' ? 1 : -1) * Math.sin(Math.PI * u) * 1.5 * K; }
+  const u = ((p % 2) + 2) % 2, stance = u < 1 ? 1 : -1;            // 1: standing on the right foot
+  const hip = pose.local[bi.hip]; hip.x -= stance * Math.sin(Math.PI * (u % 1)) * 3.5 * K;
+  hip.y -= (Math.abs(Math.cos(Math.PI * p)) ** 3 * 2 + (u >= 1 ? Math.sin(Math.PI * (u - 1)) * drag * 3 : 0)) * K;
+  pose.local[bi.chest].rotation += stance * Math.sin(Math.PI * (u % 1)) * 2.5;
 }
 
 // draw with feet at (x, y); s = v1 scale; flip mirrors. props.left/right(g, [hx, hy]) draw things in the hands.
@@ -187,7 +212,7 @@ export function drawVini(g, rig, o) {
   if (o.shadow !== false) { const a = o.shadowA ?? 0.36; g.fillStyle = `rgba(25,20,16,${a})`; g.beginPath(); g.ellipse(o.x, o.y + 2, 60 * o.s * lerp(1, 0.75, Math.abs(Math.sin(tn * Math.PI / 2))), 11 * o.s, 0, 0, Math.PI * 2); g.fill(); }
   g.save(); g.translate(o.x, o.y); g.scale(sc * fx, -sc);
   if (o.alpha != null) g.globalAlpha *= o.alpha;
-  const packSlot = rig.si.backpack, hairSlot = rig.si.hair, chest = pose.world[rig.bi.chest], head = pose.world[rig.bi.head];
+  const packSlot = rig.si.backpack, hairSlot = rig.si.hair, torsoSlot = rig.si.torso, chest = pose.world[rig.bi.chest], head = pose.world[rig.bi.head];
   for (const qd of pose.quads(rig.sk)) {
     const im = rig.imgs[qd.attachment?.name] || rig.imgs[qd.image]; if (!im) continue;
     const [p0, p1, , p3] = qd.positions, w = im.width, h = im.height;
@@ -195,6 +220,7 @@ export function drawVini(g, rig, o) {
     if (qd.slot === packSlot && rig.packLag) { // swing the pack about the top of the chest (bottom trails)
       const px = chest.tx + chest.a * 190, py = chest.ty + chest.b * 190;
       g.translate(px, py); g.rotate(-rig.packLag / DEG); g.translate(-px, -py); }
+    if (qd.slot === torsoSlot && rig.torsoSquash !== 1) { g.translate(chest.tx, 0); g.scale(rig.torsoSquash, 1); g.translate(-chest.tx, 0); }
     if (qd.slot === hairSlot && rig.hairLag) { // slide the hair over the skull (top trails)
       const px = head.tx + head.a * 120, py = head.ty + head.b * 120;
       g.translate(px, py); g.rotate(rig.hairLag / DEG); g.translate(-px, -py); }

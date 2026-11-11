@@ -1,0 +1,123 @@
+<!doctype html><html><body style="margin:0;background:#888">
+<script src="/node_modules/ag-psd/dist/bundle.js"></script>
+<script>
+// Zombies (and plain-clothes humans) drawn as separate body-part layers, same canvas and landmarks as vini_parts.html.
+// Units: v1 character units x K. Origin = canvas bottom centre (feet on the bottom edge).
+const K = 4, CW = 900, CH = 1400, OX = CW / 2, OY = CH - 40;
+const INK = '#16131a', SKIN = '#e5d6c6', SKIN_SH = '#cbbcb0', GREEN = '#4c6b50', GREEN_SH = '#3c5641', PACK = '#5e4432', HAIR = '#37251a', STRAP = '#4f3a2a';
+const LW = 16, LIMB = 20;
+const P = (x, y) => [OX + x * K, OY + y * K];          // v1 units -> canvas px (y negative = up)
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+function grain(g, path, a = 0.07) { g.save(); path(); g.clip(); for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '255,255,255'},${a * rnd()})`; g.fillRect(rnd() * CW, rnd() * CH, 2, 2); } g.restore(); }
+function shape(g, path, fill, lw = LW, o = {}) { path(); g.fillStyle = fill; g.fill(); if (o.shade) o.shade(); grain(g, path, o.grainA ?? 0.06); path(); g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = lw; g.stroke(); }
+function line(g, pts, w, col = INK) { g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(...pts[0]); for (const q of pts.slice(1)) g.lineTo(...q); g.stroke(); }
+function taperPath(g, a, b, w0, w1) { const ang = Math.atan2(b[1] - a[1], b[0] - a[0]); g.beginPath(); g.arc(a[0], a[1], w0 / 2, ang + Math.PI / 2, ang - Math.PI / 2); g.arc(b[0], b[1], w1 / 2, ang - Math.PI / 2, ang + Math.PI / 2); g.closePath(); }
+// tapered sleeve (AUDIT #8): wide at the shoulder, narrower at the cuff, same ink weight as everything else
+function sleeve(g, a, b, w, w1 = w) { taperPath(g, a, b, w + LW, w1 + LW); g.fillStyle = INK; g.fill(); taperPath(g, a, b, w, w1); g.fillStyle = GREEN; g.fill(); }
+
+// skeleton landmarks (v1 numbers, turn 0)
+const hipY = -150, shY = -238, R = 34 * 22 / 21, sw = 25, hw = 23, hc = [0, shY - R * 0.95];
+const SH = { l: [sw * 0.92, shY + 10], r: [-sw * 0.92, shY + 10] };            // character left = image right
+const EL = { l: [sw * 0.92 + 14, shY + 54], r: [-sw * 0.92 - 14, shY + 54] };
+const HA = { l: [sw * 0.92 + 24, shY + 96], r: [-sw * 0.92 - 24, shY + 96] };
+const HIP = { l: [9, hipY + 4], r: [-9, hipY + 4] }, KN = { l: [12, hipY + 78], r: [-12, hipY + 78] }, FT = { l: [14, 0], r: [-14, 0] };
+const layers = [];   // [name, drawFn, hidden]
+const L = (name, fn, hidden = false) => layers.push([name, fn, hidden]);
+// ===== ZOMBIE (and plain-clothes human) parts: same skeleton landmarks as Vini, so the same runtime poses them =====
+// Look (reference/characters/Zombies_Design.png): grey-green skin, blank pale eyes, stained ripped clothes.
+// Base outfit = office worker (grey shirt, tie). Variants: _worker (hi-vis), _teen (brown hoodie), _jacket / _coat
+// (clean clothes for panicking humans), head/eyes/hair _human for the humans.
+const ZSKIN = '#a3ab92', ZSKIN_SH = 'rgba(70,82,60,0.25)', STAIN = '#6b3326', STAIN2 = '#4e2a20';
+const OUTFIT = {
+  '': { body: '#8f9296', shade: 'rgba(40,40,48,0.25)', sleeve: '#8f9296' },
+  _worker: { body: '#c8b547', shade: 'rgba(80,70,20,0.25)', sleeve: '#c8b547' },
+  _teen: { body: '#5b3d33', shade: 'rgba(30,15,10,0.3)', sleeve: '#5b3d33' },
+  _jacket: { body: '#3f5f8c', shade: 'rgba(15,25,45,0.3)', sleeve: '#3f5f8c' },
+  _coat: { body: '#8a4a3a', shade: 'rgba(40,15,10,0.3)', sleeve: '#8a4a3a' },
+};
+const ZOMBIE_OUTFITS = ['', '_worker', '_teen'];
+function zsleeve(g, a, b, w, w1, col) { taperPath(g, a, b, w + LW, w1 + LW); g.fillStyle = INK; g.fill(); taperPath(g, a, b, w, w1); g.fillStyle = col; g.fill(); }
+function stains(g, clip, spots) { g.save(); clip(); g.clip(); for (const [x, y, r, c] of spots) { g.fillStyle = c || STAIN; g.beginPath(); g.ellipse(...P(x, y), r * K, r * 1.3 * K, 0.4, 0, 7); g.fill(); g.beginPath(); g.ellipse(...P(x + r * 0.5, y + r * 1.4), r * 0.45 * K, r * 0.7 * K, 0, 0, 7); g.fill(); } g.restore(); }
+
+for (const s of ['r', 'l']) {
+  L(`thigh_${s}`, (g) => line(g, [P(...HIP[s]), P(...KN[s])], LIMB));
+  L(`shin_${s}`, (g) => line(g, [P(...KN[s]), P(...FT[s])], LIMB));
+  L(`foot_${s}`, (g) => { const [x, y] = P(FT[s][0] + (s === 'l' ? 6 : -6), -4); g.fillStyle = INK; g.beginPath(); g.ellipse(x, y, 13 * K, 6.5 * K, 0, 0, Math.PI * 2); g.fill(); });
+}
+// torso: a ragged hem, stains; office has a tie, worker reflective stripes, teen a hood + pocket, humans clean
+function ztorso(g, v) { const o = OUTFIT[v], ragged = ZOMBIE_OUTFITS.includes(v);
+  const torso = () => { g.beginPath(); g.moveTo(...P(-sw * 0.55, shY)); g.lineTo(...P(sw * 0.55, shY)); g.quadraticCurveTo(...P(sw * 1.05, shY + 2), ...P(sw * 1.0, shY + 26)); g.lineTo(...P(hw, hipY - 3));
+    if (ragged) { const xs = [hw, 15, 9, 3, -4, -10, -16, -hw]; xs.forEach((x, i) => g.lineTo(...P(x, hipY + (i % 2 ? 13 : 5)))); }
+    else { g.quadraticCurveTo(...P(hw + 0.5, hipY + 7), ...P(hw - 6, hipY + 8.5)); g.quadraticCurveTo(...P(0, hipY + 12), ...P(-hw + 6, hipY + 8.5)); g.quadraticCurveTo(...P(-hw - 0.5, hipY + 7), ...P(-hw, hipY - 3)); }
+    g.lineTo(...P(-sw, shY + 26)); g.quadraticCurveTo(...P(-sw * 1.05, shY + 2), ...P(-sw * 0.55, shY)); g.closePath(); };
+  shape(g, torso, o.body, LW, { shade: () => { g.save(); torso(); g.clip(); g.fillStyle = o.shade; g.fillRect(...P(-sw * 1.2, shY), sw * 0.8 * K, 120 * K); g.restore(); } });
+  if (v === '') { // collar + tie
+    for (const k of [-1, 1]) shape(g, () => { g.beginPath(); g.moveTo(...P(0, shY + 2)); g.lineTo(...P(k * 9, shY)); g.lineTo(...P(k * 6, shY + 12)); g.closePath(); }, '#b8bbbf', LW * 0.6);
+    shape(g, () => { g.beginPath(); g.moveTo(...P(-3, shY + 6)); g.lineTo(...P(3, shY + 6)); g.lineTo(...P(4.5, shY + 44)); g.lineTo(...P(0, shY + 50)); g.lineTo(...P(-4.5, shY + 44)); g.closePath(); }, '#2b2f3a', LW * 0.55);
+    for (let i = 0; i < 4; i++) { g.fillStyle = INK; g.beginPath(); g.arc(...P(9, shY + 24 + i * 16), 1.4 * K, 0, 7); g.fill(); } }
+  if (v === '_worker') { for (const y of [shY + 46, shY + 62]) { g.fillStyle = '#d9d9d2'; g.fillRect(...P(-sw, y), sw * 2 * K, 5 * K); g.strokeStyle = INK; g.lineWidth = LW * 0.4; g.strokeRect(...P(-sw, y), sw * 2 * K, 5 * K); }
+    line(g, [P(0, shY + 4), P(0, hipY + 6)], LW * 0.55); }
+  if (v === '_teen' || v === '_coat') { shape(g, () => { g.beginPath(); g.ellipse(...P(0, shY + 2), 17 * K, 6 * K, 0, 0, Math.PI * 2); }, o.body, LW * 0.8); g.fillStyle = o.shade; g.beginPath(); g.roundRect(...P(-sw * 0.6, hipY - 46), sw * 1.2 * K, 26 * K, 6 * K); g.fill(); g.lineWidth = LW * 0.55; g.strokeStyle = INK; g.stroke(); }
+  if (v === '_jacket') { line(g, [P(0, shY + 4), P(0, hipY + 6)], LW * 0.6); for (const k of [-1, 1]) line(g, [P(k * 4, shY + 2), P(k * 12, shY + 18)], LW * 0.55); }
+  if (ragged) stains(g, torso, v === '_worker' ? [[-10, shY + 30, 5], [8, shY + 74, 4, STAIN2], [-4, hipY - 10, 3]] : v === '_teen' ? [[10, shY + 36, 4, '#3a1c16'], [-8, shY + 70, 5, '#3a1c16']] : [[-11, shY + 34, 5], [6, shY + 58, 4.5], [-6, hipY - 14, 3.5, STAIN2]]);
+  // a rip
+  if (ragged) line(g, [P(14, shY + 50), P(10, shY + 58), P(15, shY + 64)], LW * 0.45);
+}
+L('torso', (g) => ztorso(g, ''));
+for (const v of Object.keys(OUTFIT).filter((v) => v)) L(`torso${v}`, (g) => ztorso(g, v), true);
+// arms: sleeves in the outfit colour (ragged cuffs on zombies), grey-green or skin hands
+function zarm(g, s, v, part) { const o = OUTFIT[v], sh = P(...SH[s]), el = P(...EL[s]), ha = P(...HA[s]);
+  if (part === 'upper') zsleeve(g, sh, el, 7.8 * K, 6.8 * K, o.sleeve);
+  else { const e2 = [el[0] + (ha[0] - el[0]) * (ZOMBIE_OUTFITS.includes(v) ? 0.55 : 0.82), el[1] + (ha[1] - el[1]) * (ZOMBIE_OUTFITS.includes(v) ? 0.55 : 0.82)]; line(g, [el, ha], LIMB); zsleeve(g, el, e2, 6.8 * K, 6.2 * K, o.sleeve); } }
+for (const s of ['r', 'l']) {
+  L(`upperarm_${s}`, (g) => zarm(g, s, '', 'upper')); L(`forearm_${s}`, (g) => zarm(g, s, '', 'fore'));
+  for (const v of Object.keys(OUTFIT).filter((v) => v)) { L(`upperarm_${s}${v}`, (g) => zarm(g, s, v, 'upper'), true); L(`forearm_${s}${v}`, (g) => zarm(g, s, v, 'fore'), true); }
+  L(`hand_${s}`, (g) => { g.fillStyle = INK; g.beginPath(); g.arc(...P(...HA[s]), 5.4 * K, 0, Math.PI * 2); g.fill(); });
+}
+L('neck', (g) => line(g, [P(0, shY + 2), P(0, hc[1] + R * 0.85)], LIMB));
+function zhead(g, human) { const c = P(...hc), head = () => { g.beginPath(); g.arc(...c, R * K, 0, Math.PI * 2); };
+  shape(g, head, human ? SKIN : ZSKIN, LW, { grainA: 0.12, shade: () => { g.save(); head(); g.clip(); g.fillStyle = human ? 'rgba(140,128,140,0.16)' : ZSKIN_SH; g.beginPath(); g.arc(c[0] + R * 0.4 * K, c[1] + R * 0.12 * K, R * 0.92 * K, 0, 7); g.fill();
+    if (!human) { g.fillStyle = 'rgba(90,60,70,0.22)'; for (const x of [-1, 1]) { g.beginPath(); g.ellipse(...P(x * R * 0.34, hc[1] + R * 0.08), R * 0.2 * K, R * 0.12 * K, 0, 0, 7); g.fill(); } // sunken eyes
+      g.fillStyle = 'rgba(80,40,30,0.35)'; g.beginPath(); g.ellipse(...P(-R * 0.45, hc[1] + R * 0.45), R * 0.12 * K, R * 0.08 * K, 0.5, 0, 7); g.fill(); }
+    g.restore(); } }); }
+L('head', (g) => zhead(g, false));
+L('head_human', (g) => zhead(g, true), true);
+// face
+const ey = hc[1] - R * 0.04, gap = R * 0.34, er = R * 0.085, my = hc[1] + R * 0.45, mw = R * 0.18;
+for (const s of ['r', 'l']) { const x = (s === 'l' ? 1 : -1) * gap;
+  // blank eyes: pale yellow with a tiny dark pupil, ringed in ink
+  L(`eye_${s}`, (g) => { g.fillStyle = '#e8e2b4'; g.beginPath(); g.ellipse(...P(x, ey), er * 1.55 * K, er * 1.55 * K, 0, 0, 7); g.fill(); g.lineWidth = LW * 0.5; g.strokeStyle = INK; g.stroke(); g.fillStyle = INK; g.beginPath(); g.arc(...P(x + (s === 'l' ? -0.3 : 0.3), ey + 0.4), er * 0.42 * K, 0, 7); g.fill(); });
+  L(`eye_${s}_human`, (g) => { g.fillStyle = INK; g.beginPath(); g.ellipse(...P(x, ey), er * K, er * 1.25 * K, 0, 0, Math.PI * 2); g.fill(); }, true);
+  L(`brow_${s}`, (g) => line(g, [P(x - R * 0.13, ey - R * 0.3 + (s === 'l' ? 1.2 : -1.2)), P(x + R * 0.13, ey - R * 0.3 + (s === 'l' ? -1.2 : 1.2))], LW * 0.9));
+  L(`eye_${s}_closed`, (g) => { g.strokeStyle = INK; g.lineWidth = LW * 0.8; g.lineCap = 'round'; g.beginPath(); g.moveTo(...P(x - er * 1.4, ey)); g.quadraticCurveTo(...P(x, ey + er * 0.6), ...P(x + er * 1.4, ey)); g.stroke(); }, true);
+}
+const zmouth = (g, h, w) => { const [mx, myy] = P(0, my); g.fillStyle = '#2a1414'; g.beginPath(); g.ellipse(mx, myy, w * K, h * K, 0, 0, 7); g.fill(); g.lineWidth = LW * 0.5; g.strokeStyle = INK; g.stroke();
+  g.fillStyle = '#d8d0a8'; for (let i = -2; i <= 2; i += 2) { g.beginPath(); g.moveTo(mx + (i - 0.8) * w * 0.25 * K, myy - h * 0.8 * K); g.lineTo(mx + (i + 0.8) * w * 0.25 * K, myy - h * 0.8 * K); g.lineTo(mx + i * w * 0.25 * K, myy - h * 0.25 * K); g.closePath(); g.fill(); } };
+L('mouth', (g) => zmouth(g, R * 0.1, mw * 0.85));
+L('mouth_o', (g) => zmouth(g, R * 0.2, mw * 1.0), true);
+L('mouth_scream', (g) => { const [mx, myy] = P(0, my); g.fillStyle = INK; g.beginPath(); g.ellipse(mx, myy, mw * 0.95 * K, R * 0.22 * K, 0, 0, 7); g.fill(); g.fillStyle = '#c8505a'; g.beginPath(); g.ellipse(mx, myy + R * 0.1 * K, mw * 0.5 * K, R * 0.08 * K, 0, 0, 7); g.fill(); }, true);
+// hair: office = short dark side-parted, worker = buzzed (a thin dark cap), teen = long brown, human = short tidy
+function zhair(g, v) { const k = R / 268, Q = (X, Y) => P(hc[0] + X * k * 1.07, hc[1] + Y * k), q = (a, b, c, d) => g.quadraticCurveTo(...Q(a, b), ...Q(c, d));
+  if (v === '_worker') { shape(g, () => { g.beginPath(); g.moveTo(...Q(-262, -60)); g.bezierCurveTo(...Q(-250, -250), ...Q(250, -250), ...Q(262, -60)); q(200, -190, 0, -205); q(-200, -190, -262, -60); g.closePath(); }, 'rgba(60,55,45,0.55)', LW * 0.6); return; }
+  if (v === '_teen') { shape(g, () => { g.beginPath(); g.moveTo(...Q(-290, 300)); g.bezierCurveTo(...Q(-330, -120), ...Q(-220, -310), ...Q(0, -300)); g.bezierCurveTo(...Q(220, -310), ...Q(330, -120), ...Q(290, 300)); q(250, 320, 225, 280); q(250, 0, 200, -120); q(80, -150, -40, -175); q(-160, -150, -205, -110); q(-250, 0, -225, 280); q(-250, 320, -290, 300); g.closePath(); }, '#4a3020', LW); return; }
+  const col = v === '_human' ? '#2a2018' : '#26201c';
+  shape(g, () => { g.beginPath(); g.moveTo(...Q(-268, -10)); g.bezierCurveTo(...Q(-290, -200), ...Q(-150, -300), ...Q(0, -295)); g.bezierCurveTo(...Q(170, -300), ...Q(290, -200), ...Q(268, -20));
+    q(240, -120, 180, -150); q(60, -165, -40, -125); q(-120, -175, -200, -140); q(-250, -90, -268, -10); g.closePath(); }, col, LW);
+  if (v === '') { g.strokeStyle = 'rgba(150,140,120,0.35)'; g.lineWidth = LW * 0.45; g.beginPath(); g.moveTo(...Q(-60, -250)); g.quadraticCurveTo(...Q(-20, -200), ...Q(-40, -140)); g.stroke(); }
+}
+L('hair', (g) => zhair(g, ''));
+for (const v of ['_worker', '_teen', '_human']) L(`hair${v}`, (g) => zhair(g, v), true);
+
+// ---- render every layer + a composite preview, build the PSD
+const out = { layers: [], preview: null };
+const comp = document.createElement('canvas'); comp.width = CW; comp.height = CH; const cg = comp.getContext('2d');
+const children = [];
+for (const [name, fn, hidden] of layers) { const c = document.createElement('canvas'); c.width = CW; c.height = CH; fn(c.getContext('2d')); if (!hidden) cg.drawImage(c, 0, 0);
+  children.push({ name, canvas: c, hidden, top: 0, left: 0 }); out.layers.push([name, c.toDataURL('image/png'), hidden]); }
+out.preview = comp.toDataURL('image/png');
+const psd = { width: CW, height: CH, children };
+const buf = agPsd.writePsd(psd);
+let bin = ''; const u8 = new Uint8Array(buf); for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+out.psd = btoa(bin);
+window.OUT = out;
+</script></body></html>

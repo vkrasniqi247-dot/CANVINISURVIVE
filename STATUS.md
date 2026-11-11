@@ -96,5 +96,16 @@ What still holds it under 9.5:
 3. d4's 6 s freeze is now moving (push-in) but is still the longest beat without character motion; with the real narration it may want trimming.
 **Decision:** stop looping on Day 1 here and move on to Stage 6, because the remaining points need the real voice track; more code polish without it risks re-timing everything twice.
 
+## Stage 6 — carry the system forward ✅
+- **Zombie rig:** `rig/zombie_parts.html` (same canvas and skeleton landmarks as Vini) → `node rig/build_rig.mjs zombie` → `public/zombie/`. Office worker (base), hi-vis worker and hoodie teen outfits from `Zombies_Design.png` (grey-green skin, blank pale eyes, stained ragged clothes), plus clean `_jacket` / `_coat` clothes and `_human` head, eyes and hair for the panicking runners. `build_rig.mjs`, `make_psd.mjs`, `patch_views.mjs` now take the character name.
+- **Decision:** one runtime for every character: `rig.js` picks `<part><outfit><view>` with fallbacks, so the zombie reuses the turn system; it has no profile torso art, so its front torso is narrowed when turned (cheap and fine at street distance).
+- Lurch (`src/zombie/zombie.js`): walking at camera = `march` (steps in place, the scene moves and scales him): hips sway over the standing foot and dip on the dragged right leg; in profile = planted-feet walk with `drag`; head loll with an occasional jerk, reaching arms that sway, forward lean. Check sheet: `RigTest` frame 4.
+- **Opening** composition (`src/Opening.jsx`, 105.4 s): hook h1–h6 (`scenes/hook.js`), the Day 1 test (`scenes/day1.js`), d6–d12 (`scenes/day1b.js`). Same timings and labels as v1. Upgrades over v1: rigged characters throughout, punch-ins (h2 "question", d6 "…that BITE", d11 terror), every notebook doodle drawn by the pen, page flips between notebook pages, whip pans into the street (60.2) and back into the flat (91.0), a dip to black into MIDNIGHT. Sound: v1 placeholder voice, the v1 Day 1 mix in its window, and the groan files at their cues.
+- Render: `out/opening.mp4` (crf 18, 4 m 50 s on this PC), sheet `out/opening_contact.png`.
+- Opening score (honest): about **8.3** overall: the Day 1 window is the 8.7 above; the hook and d6–d12 got the rig and transitions but not the same per-beat acting pass (d6 opens on ~3 s of empty street, as in v1).
+
 ## HUMAN TASKS
-(kept up to date; see the end of the file)
+1. **Narration (blocks 9.5).** Record the ElevenLabs "Henry" narration from the script (`reference/script_and_prompts/01_SCRIPT_Surviving_30_Days.md`), export one WAV for 0–105.4 s, put it in `public/audio/` (e.g. `vo_opening_henry.wav`) and run the follow-up prompt: every cue gets re-timed to it.
+2. **Foley/music stems.** The v1 synthesized sfx (pop, hit, whoosh, footsteps, phone buzz) only exist inside `day1_v1mix.wav`, so the Opening outside 28.6–60.2 has voice + groans only. If you want them, export the v1 sfx as separate WAVs into `public/audio/sfx/` (names as in `reference/v1/shots_opening.json`) and I'll place them on their cues.
+3. **Two missing backgrounds** (README says 6 of 8 done): generate them in Copilot with the prompts already in `reference/script_and_prompts/02_BACKGROUND_PROMPTS.md`, save as PNG into `public/bg/`; the follow-up prompt crops, colour-matches and grains them.
+4. Watch `Downloads\Can Vini Survive\day1_test.mp4` and say if the punch-ins or the whip feel too much; they're one number each in `src/scenes/day1.js`.

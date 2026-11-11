@@ -8,3 +8,5 @@ rig/vini_export/
 rig/layers/
 rig/*.rigby
 rig/vini_preview.png
+rig/zombie_export/
+rig/*_preview.png
