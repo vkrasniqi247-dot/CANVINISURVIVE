@@ -11,7 +11,9 @@ let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 214748364
 function grain(g, path, a = 0.07) { g.save(); path(); g.clip(); for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '255,255,255'},${a * rnd()})`; g.fillRect(rnd() * CW, rnd() * CH, 2, 2); } g.restore(); }
 function shape(g, path, fill, lw = LW, o = {}) { path(); g.fillStyle = fill; g.fill(); if (o.shade) o.shade(); grain(g, path, o.grainA ?? 0.06); path(); g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = lw; g.stroke(); }
 function line(g, pts, w, col = INK) { g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(...pts[0]); for (const q of pts.slice(1)) g.lineTo(...q); g.stroke(); }
-function sleeve(g, a, b, w) { line(g, [a, b], w + LW, INK); line(g, [a, b], w, GREEN); }
+function taperPath(g, a, b, w0, w1) { const ang = Math.atan2(b[1] - a[1], b[0] - a[0]); g.beginPath(); g.arc(a[0], a[1], w0 / 2, ang + Math.PI / 2, ang - Math.PI / 2); g.arc(b[0], b[1], w1 / 2, ang - Math.PI / 2, ang + Math.PI / 2); g.closePath(); }
+// tapered sleeve (AUDIT #8): wide at the shoulder, narrower at the cuff, same ink weight as everything else
+function sleeve(g, a, b, w, w1 = w) { taperPath(g, a, b, w + LW, w1 + LW); g.fillStyle = INK; g.fill(); taperPath(g, a, b, w, w1); g.fillStyle = GREEN; g.fill(); }
 
 // skeleton landmarks (v1 numbers, turn 0)
 const hipY = -150, shY = -238, R = 34 * 22 / 21, sw = 25, hw = 23, hc = [0, shY - R * 0.95];
@@ -30,7 +32,7 @@ for (const s of ['r', 'l']) {
   L(`foot_${s}`, (g) => { const [x, y] = P(FT[s][0] + (s === 'l' ? 6 : -6), -4); g.fillStyle = INK; g.beginPath(); g.ellipse(x, y, 13 * K, 6.5 * K, 0, 0, Math.PI * 2); g.fill(); });
 }
 L('torso', (g) => {
-  const torso = () => { g.beginPath(); g.moveTo(...P(-sw * 0.55, shY)); g.lineTo(...P(sw * 0.55, shY)); g.quadraticCurveTo(...P(sw * 1.05, shY + 2), ...P(sw * 1.0, shY + 26)); g.lineTo(...P(hw, hipY + 6)); g.quadraticCurveTo(...P(0, hipY + 12), ...P(-hw, hipY + 6)); g.lineTo(...P(-sw, shY + 26)); g.quadraticCurveTo(...P(-sw * 1.05, shY + 2), ...P(-sw * 0.55, shY)); g.closePath(); };
+  const torso = () => { g.beginPath(); g.moveTo(...P(-sw * 0.55, shY)); g.lineTo(...P(sw * 0.55, shY)); g.quadraticCurveTo(...P(sw * 1.05, shY + 2), ...P(sw * 1.0, shY + 26)); g.lineTo(...P(hw, hipY - 3)); g.quadraticCurveTo(...P(hw + 0.5, hipY + 7), ...P(hw - 6, hipY + 8.5)); g.quadraticCurveTo(...P(0, hipY + 12), ...P(-hw + 6, hipY + 8.5)); g.quadraticCurveTo(...P(-hw - 0.5, hipY + 7), ...P(-hw, hipY - 3)); g.lineTo(...P(-sw, shY + 26)); g.quadraticCurveTo(...P(-sw * 1.05, shY + 2), ...P(-sw * 0.55, shY)); g.closePath(); };
   shape(g, torso, GREEN, LW, { shade: () => { g.save(); torso(); g.clip(); g.fillStyle = 'rgba(30,45,32,0.28)'; g.beginPath(); g.moveTo(...P(-sw * 1.2, shY)); g.lineTo(...P(-sw * 0.35, shY)); g.lineTo(...P(-hw * 0.5, hipY + 14)); g.lineTo(...P(-sw * 1.2, hipY + 14)); g.closePath(); g.fill(); g.restore(); } });
   // hood bunched at the collar
   shape(g, () => { g.beginPath(); g.ellipse(...P(0, shY + 2), 17 * K, 6 * K, 0, 0, Math.PI * 2); }, GREEN_SH, LW * 0.8);
@@ -42,8 +44,8 @@ L('torso', (g) => {
 });
 for (const s of ['r', 'l']) {
   const sh = P(...SH[s]), el = P(...EL[s]), ha = P(...HA[s]);
-  L(`upperarm_${s}`, (g) => sleeve(g, sh, el, 7 * K));
-  L(`forearm_${s}`, (g) => { const e2 = [el[0] + (ha[0] - el[0]) * 0.82, el[1] + (ha[1] - el[1]) * 0.82]; line(g, [el, ha], LIMB); sleeve(g, el, e2, 7 * K); });
+  L(`upperarm_${s}`, (g) => sleeve(g, sh, el, 7.8 * K, 6.8 * K));
+  L(`forearm_${s}`, (g) => { const e2 = [el[0] + (ha[0] - el[0]) * 0.82, el[1] + (ha[1] - el[1]) * 0.82]; line(g, [el, ha], LIMB); sleeve(g, el, e2, 6.8 * K, 5.6 * K); });
   L(`hand_${s}`, (g) => { g.fillStyle = INK; g.beginPath(); g.arc(...ha, 5.4 * K, 0, Math.PI * 2); g.fill(); });
 }
 L('neck', (g) => line(g, [P(0, shY + 2), P(0, hc[1] + R * 0.85)], LIMB));
@@ -70,6 +72,66 @@ L('hair', (g) => { const k = R / 268, Q = (X, Y) => P(hc[0] + X * k * 1.07, hc[1
   shape(g, path, HAIR, LW);
   for (const [s2, y0] of [[-1, -150], [-1, -60], [1, -170], [1, -80]]) shape(g, () => { g.beginPath(); g.moveTo(...Q(s2 * 250, y0 - 30)); g.lineTo(...Q(s2 * 300, y0 + 6)); g.lineTo(...Q(s2 * 262, y0 + 30)); g.closePath(); }, HAIR, LW * 0.8);
   g.strokeStyle = 'rgba(160,130,110,0.5)'; g.lineWidth = LW * 0.5; g.lineCap = 'round'; for (const [x0, y0, x1, y1] of [[-160, -215, -95, -170], [40, -250, 110, -185]]) { g.beginPath(); g.moveTo(...Q(x0, y0)); g.quadraticCurveTo(...Q((x0 + x1) / 2 + 18, (y0 + y1) / 2 - 14), ...Q(x1, y1)); g.stroke(); } });
+
+// ---- TURN VARIANTS (hidden layers; patch_views.mjs folds each into its base slot) --------------------
+// Drawn turned toward image-right (+x). The runtime mirrors the whole figure for turns to the left.
+// A body point with lateral L (image x in the front view) and depth F (+ = toward his front) lands at
+// x = L cos(a) + F sin(a) for a turn angle a: 3/4 = 54°, side = 90°.
+const XT = (L, F, a) => L * Math.cos(a) + F * Math.sin(a);
+const A34 = 54 * Math.PI / 180, ASIDE = Math.PI / 2, DEPTH = 13;
+function torsoTurned(g, a, name) {
+  const side = a > 1.2, ca = Math.cos(a);
+  const back = side ? -12.5 : -22.5, front = side ? 13.5 : 21.5;           // silhouette edges
+  const zipX = XT(0, DEPTH, a) - (side ? 1.5 : 0), top = shY;
+  const torso = () => { g.beginPath();
+    g.moveTo(...P(back * 0.55, top)); g.lineTo(...P(front * 0.5, top));
+    g.quadraticCurveTo(...P(front * 1.04, top + 2), ...P(front, top + 26));
+    g.quadraticCurveTo(...P(front + (side ? 2.5 : 0.8), top + 55), ...P(front - 0.5, hipY - 3));
+    g.quadraticCurveTo(...P(front, hipY + 7), ...P(front - 6, hipY + 8.5)); g.quadraticCurveTo(...P((front + back) / 2, hipY + 12), ...P(back + 6, hipY + 8.5));
+    g.quadraticCurveTo(...P(back - 0.5, hipY + 7), ...P(back, hipY - 3)); g.lineTo(...P(back - 0.6, top + 26)); g.quadraticCurveTo(...P(back * 1.04, top + 2), ...P(back * 0.55, top)); g.closePath(); };
+  shape(g, torso, GREEN, LW, { shade: () => { g.save(); torso(); g.clip(); g.fillStyle = 'rgba(30,45,32,0.28)'; g.beginPath();
+    g.moveTo(...P(back - 2, top)); g.lineTo(...P(back + (side ? 7 : 9), top)); g.lineTo(...P(back + (side ? 6 : 8), hipY + 14)); g.lineTo(...P(back - 2, hipY + 14)); g.closePath(); g.fill(); g.restore(); } });
+  // hood bunched at the collar, pushed toward the back as he turns
+  shape(g, () => { g.beginPath(); g.ellipse(...P(side ? -5 : -3, shY + 2), (side ? 11 : 15) * K, 6 * K, 0, 0, Math.PI * 2); }, GREEN_SH, LW * 0.8);
+  // zip (and the drawstrings either side of it)
+  line(g, [P(zipX, shY + 7), P(zipX + (side ? 0.6 : 0), hipY + 7)], LW * 0.6);
+  for (const k of side ? [1] : [-1, 1]) { const dx = side ? -3 : k * 7 * ca; line(g, [P(zipX + dx, shY + 4), P(zipX + dx * 1.1, shY + 34)], LW * 0.55); g.fillStyle = '#f2f2f0'; g.beginPath(); g.arc(...P(zipX + dx * 1.1, shY + 36), 2.6 * K, 0, 7); g.fill(); g.lineWidth = LW * 0.5; g.strokeStyle = INK; g.stroke(); }
+  // kangaroo pocket
+  const pw = side ? 9 : sw * 1.2 * 0.8; g.fillStyle = GREEN_SH; g.beginPath(); g.roundRect(...P(side ? front - pw - 0.5 : zipX - pw / 2, hipY - 46), pw * K, 26 * K, 6 * K); g.fill(); g.lineWidth = LW * 0.55; g.strokeStyle = INK; g.stroke();
+  // backpack straps: the near one (his right) over the chest, the far one only at 3/4
+  const strap = (x0, x1, y1) => { g.fillStyle = STRAP; g.beginPath(); g.moveTo(...P(x0, shY - 1)); g.lineTo(...P(x0 + 7.5, shY - 1)); g.lineTo(...P(x1 + 7, y1)); g.lineTo(...P(x1, y1)); g.closePath(); g.fill(); g.lineWidth = LW * 0.55; g.strokeStyle = INK; g.stroke(); };
+  if (side) { strap(-6, 2.5, hipY - 18); }
+  else { strap(XT(-sw * 0.85, 6, a), XT(-sw * 0.78, 9, a), hipY - 18); strap(XT(sw * 0.55, 8, a) + 1, XT(sw * 0.5, 10, a), hipY - 18); }
+}
+L('torso_t34', (g) => torsoTurned(g, A34), true);
+L('torso_side', (g) => torsoTurned(g, ASIDE), true);
+// the backpack shows on his back as he turns
+L('backpack_t34', (g) => { shape(g, () => { g.beginPath(); g.roundRect(...P(-38, shY + 2), 44 * K, 72 * K, 15 * K); }, PACK);
+  line(g, [P(-35, shY + 26), P(-24, shY + 27)], LW * 0.6); }, true);
+L('backpack_side', (g) => { shape(g, () => { g.beginPath(); g.roundRect(...P(-31, shY + 1), 24 * K, 74 * K, 9 * K); }, PACK);
+  shape(g, () => { g.beginPath(); g.roundRect(...P(-34, shY + 34), 10 * K, 30 * K, 4 * K); }, '#53392a', LW * 0.8);
+  line(g, [P(-30, shY + 18), P(-12, shY + 18)], LW * 0.6); }, true);
+// side feet point the way he faces: heel under the ankle, toe forward
+for (const s of ['r', 'l']) L(`foot_${s}_side`, (g) => { const [x, y] = P(FT[s][0] + 8, -4); g.fillStyle = INK; g.beginPath(); g.ellipse(x, y, 14.5 * K, 6.5 * K, 0, 0, Math.PI * 2); g.fill(); }, true);
+// hair, turned: the parting sweeps toward the face side and the mass moves round to the back
+function hairTurned(g, side) { const k = R / 268, Q = (X, Y) => P(hc[0] + X * k * 1.07, hc[1] + Y * k);
+  const B = (a, b, c, d, e, f) => g.bezierCurveTo(...Q(a, b), ...Q(c, d), ...Q(e, f)), q = (a, b, c, d) => g.quadraticCurveTo(...Q(a, b), ...Q(c, d));
+  const path = side ? () => { g.beginPath(); g.moveTo(...Q(-258, 78));
+      B(-300, -20, -300, -190, -205, -275); q(-215, -350, -150, -372); q(-120, -318, -75, -300); q(-55, -392, 30, -398); q(25, -330, 75, -300);
+      q(150, -352, 222, -334); q(195, -292, 212, -262); B(258, -228, 278, -175, 262, -118);
+      q(240, -140, 218, -150); q(206, -116, 186, -100); q(166, -142, 134, -156); q(120, -130, 100, -112); q(70, -165, 28, -156);
+      q(8, -122, -24, -100); q(-62, -130, -94, -112); q(-110, -40, -112, 16); q(-150, -10, -176, 34); q(-210, 30, -258, 78); g.closePath(); }
+    : () => { g.beginPath(); g.moveTo(...Q(-276, 30));
+      B(-302, -160, -205, -305, -45, -298); q(-70, -378, 8, -394); q(0, -326, 56, -300); q(118, -366, 192, -350); q(156, -300, 178, -270);
+      B(268, -200, 290, -100, 262, -24); q(240, -76, 212, -96); q(204, -58, 178, -42); q(152, -108, 104, -124); q(98, -88, 72, -66);
+      q(30, -142, -32, -152); q(-34, -114, -60, -92); q(-106, -144, -160, -134); q(-162, -84, -212, -40); q(-236, -8, -276, 30); g.closePath(); };
+  shape(g, path, HAIR, LW);
+  const tufts = side ? [[-1, -170], [-1, -70], [-1, 20]] : [[-1, -160], [-1, -60], [1, -175]];
+  for (const [s2, y0] of tufts) { const x = s2 < 0 ? (side ? -262 : -252) : 252; shape(g, () => { g.beginPath(); g.moveTo(...Q(x, y0 - 30)); g.lineTo(...Q(x + s2 * 50, y0 + 6)); g.lineTo(...Q(x + s2 * 12, y0 + 30)); g.closePath(); }, HAIR, LW * 0.8); }
+  g.strokeStyle = 'rgba(160,130,110,0.5)'; g.lineWidth = LW * 0.5; g.lineCap = 'round';
+  for (const [x0, y0, x1, y1] of side ? [[-200, -200, -120, -170], [-10, -260, 80, -200]] : [[-130, -220, -60, -175], [60, -250, 135, -185]]) { g.beginPath(); g.moveTo(...Q(x0, y0)); g.quadraticCurveTo(...Q((x0 + x1) / 2 + 18, (y0 + y1) / 2 - 14), ...Q(x1, y1)); g.stroke(); } }
+L('hair_t34', (g) => hairTurned(g, false), true);
+L('hair_side', (g) => hairTurned(g, true), true);
 
 // ---- render every layer + a composite preview, build the PSD
 const out = { layers: [], preview: null };
