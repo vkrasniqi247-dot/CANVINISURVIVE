@@ -1,6 +1,8 @@
 // minimal MCP stdio client for the Rigby2D server: node mcp.mjs '<tool>' '<json args>'  (or a JSON array of [tool,args] via --batch file)
 import { spawn } from 'child_process';
-const srv = spawn('node', ['/home/claude/ext/rigby2d/src/mcp/server.js', '--root', '/home/claude/rig'], { stdio: ['pipe', 'pipe', 'inherit'] });
+import path from 'node:path'; import { fileURLToPath } from 'node:url';
+const HERE = path.dirname(fileURLToPath(import.meta.url)), RIGBY = process.env.RIGBY2D || path.resolve(HERE, '../../rigby2d');
+const srv = spawn('node', [path.join(RIGBY, 'src/mcp/server.js'), '--root', HERE], { stdio: ['pipe', 'pipe', 'inherit'] });
 let buf = '', id = 0; const wait = new Map();
 srv.stdout.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const l = buf.slice(0, i); buf = buf.slice(i + 1); if (!l.trim()) continue; const m = JSON.parse(l); if (m.id && wait.has(m.id)) { wait.get(m.id)(m); wait.delete(m.id); } } });
 const rpc = (method, params) => new Promise((r) => { const i = ++id; wait.set(i, r); srv.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: i, method, params }) + '\n'); });

@@ -1,0 +1,559 @@
+{
+ "title": "opening",
+ "duration": 105.4,
+ "music": [
+  {
+   "start": 0,
+   "end": 27.6,
+   "mood": "dark",
+   "intensity": 0.5
+  },
+  {
+   "start": 28.6,
+   "end": 52.6,
+   "mood": "mystery",
+   "intensity": 0.45
+  },
+  {
+   "start": 52.6,
+   "end": 95.2,
+   "mood": "tension",
+   "intensity": 0.4
+  },
+  {
+   "start": 95.2,
+   "end": 105.4,
+   "mood": "dark",
+   "intensity": 0.6
+  }
+ ],
+ "shots": [
+  {
+   "id": "h1",
+   "start": 0,
+   "end": 6.45,
+   "sfx": [
+    {
+     "at": 1.0,
+     "name": "pop",
+     "gain": -14
+    },
+    {
+     "at": 5.45,
+     "name": "pop",
+     "gain": -14
+    }
+   ]
+  },
+  {
+   "id": "h2",
+   "start": 6.45,
+   "end": 11.6,
+   "sfx": [
+    {
+     "at": 0.05,
+     "name": "hum",
+     "gain": -26,
+     "dur": 5.0
+    },
+    {
+     "at": 1.45,
+     "name": "stinger",
+     "gain": -16
+    }
+   ],
+   "amb": {
+    "name": "roomtone",
+    "gain": -30
+   }
+  },
+  {
+   "id": "h3",
+   "start": 11.6,
+   "end": 14.7,
+   "sfx": [
+    {
+     "at": 0.1,
+     "name": "heartbeat",
+     "gain": -14,
+     "dur": 3.0
+    },
+    {
+     "at": 1.5,
+     "name": "impact",
+     "gain": -9
+    }
+   ],
+   "amb": {
+    "name": "roomtone",
+    "gain": -30
+   }
+  },
+  {
+   "id": "h4",
+   "start": 14.7,
+   "end": 23.4,
+   "sfx": [
+    {
+     "at": 0.3,
+     "name": "input/sfx/groan_single.wav",
+     "gain": -18
+    },
+    {
+     "at": 4.45,
+     "name": "pop",
+     "gain": -14
+    },
+    {
+     "at": 6.2,
+     "name": "input/sfx/groan_single.wav",
+     "gain": -16
+    },
+    {
+     "at": 6.9,
+     "name": "hit",
+     "gain": -12
+    }
+   ],
+   "amb": {
+    "name": "wind",
+    "gain": -28
+   }
+  },
+  {
+   "id": "h5",
+   "start": 23.4,
+   "end": 27.6,
+   "sfx": [
+    {
+     "at": 0.1,
+     "name": "heartbeat",
+     "gain": -13,
+     "dur": 4.0
+    },
+    {
+     "at": 2.31,
+     "name": "hit",
+     "gain": -12
+    },
+    {
+     "at": 2.59,
+     "name": "hit",
+     "gain": -12
+    },
+    {
+     "at": 3.16,
+     "name": "impact",
+     "gain": -8
+    }
+   ],
+   "amb": {
+    "name": "wind",
+    "gain": -28
+   }
+  },
+  {
+   "id": "h6",
+   "start": 27.6,
+   "end": 28.6,
+   "sfx": [
+    {
+     "at": 0.0,
+     "name": "impact",
+     "gain": -7
+    }
+   ]
+  },
+  {
+   "id": "d1",
+   "start": 28.6,
+   "end": 36.5,
+   "sfx": [
+    {
+     "at": 0.13,
+     "name": "hit",
+     "gain": -8
+    },
+    {
+     "at": 1.6,
+     "name": "phonebuzz",
+     "gain": -12
+    },
+    {
+     "at": 2.9,
+     "name": "pop",
+     "gain": -14
+    },
+    {
+     "at": 3.3,
+     "name": "phonebuzz",
+     "gain": -12
+    },
+    {
+     "at": 3.7,
+     "name": "whoosh",
+     "gain": -14,
+     "dur": 0.5
+    },
+    {
+     "at": 4.85,
+     "name": "swish",
+     "gain": -16
+    },
+    {
+     "at": 6.0,
+     "name": "stinger",
+     "gain": -15
+    }
+   ],
+   "amb": {
+    "name": "roomtone",
+    "gain": -30
+   }
+  },
+  {
+   "id": "d2",
+   "start": 36.5,
+   "end": 41.8,
+   "sfx": [
+    {
+     "at": 0.3,
+     "name": "input/sfx/shout_distant.wav",
+     "gain": -14
+    },
+    {
+     "at": 3.5,
+     "name": "heartbeat",
+     "gain": -16,
+     "dur": 1.8
+    }
+   ],
+   "amb": {
+    "name": "roomtone",
+    "gain": -30
+   }
+  },
+  {
+   "id": "d3",
+   "start": 41.8,
+   "end": 46.6,
+   "sfx": [
+    {
+     "at": 0.15,
+     "name": "footstep",
+     "gain": -22,
+     "seed": 17
+    },
+    {
+     "at": 0.64,
+     "name": "footstep",
+     "gain": -22,
+     "seed": 18
+    },
+    {
+     "at": 1.13,
+     "name": "footstep",
+     "gain": -22,
+     "seed": 19
+    },
+    {
+     "at": 1.62,
+     "name": "footstep",
+     "gain": -22,
+     "seed": 20
+    },
+    {
+     "at": 2.11,
+     "name": "footstep",
+     "gain": -22,
+     "seed": 21
+    },
+    {
+     "at": 2.6,
+     "name": "footstep",
+     "gain": -22,
+     "seed": 22
+    },
+    {
+     "at": 3.09,
+     "name": "footstep",
+     "gain": -22,
+     "seed": 23
+    },
+    {
+     "at": 3.58,
+     "name": "footstep",
+     "gain": -22,
+     "seed": 24
+    },
+    {
+     "at": 4.07,
+     "name": "footstep",
+     "gain": -22,
+     "seed": 25
+    },
+    {
+     "at": 1.9,
+     "name": "pop",
+     "gain": -14
+    }
+   ],
+   "amb": {
+    "name": "roomtone",
+    "gain": -30
+   }
+  },
+  {
+   "id": "d4",
+   "start": 46.6,
+   "end": 52.6,
+   "sfx": [
+    {
+     "at": 0.0,
+     "name": "freeze",
+     "gain": -12
+    },
+    {
+     "at": 0.7,
+     "name": "pop",
+     "gain": -12
+    },
+    {
+     "at": 3.55,
+     "name": "hit",
+     "gain": -10
+    }
+   ]
+  },
+  {
+   "id": "d5",
+   "start": 52.6,
+   "end": 60.2,
+   "sfx": [
+    {
+     "at": 0.0,
+     "name": "swish",
+     "gain": -14
+    },
+    {
+     "at": 3.4,
+     "name": "pop",
+     "gain": -15
+    },
+    {
+     "at": 4.32,
+     "name": "pop",
+     "gain": -15
+    },
+    {
+     "at": 5.84,
+     "name": "pop",
+     "gain": -15
+    },
+    {
+     "at": 3.95,
+     "name": "blip",
+     "gain": -18
+    },
+    {
+     "at": 4.87,
+     "name": "blip",
+     "gain": -18
+    },
+    {
+     "at": 6.39,
+     "name": "blip",
+     "gain": -18
+    }
+   ]
+  },
+  {
+   "id": "d6",
+   "start": 60.2,
+   "end": 71.3,
+   "sfx": [
+    {
+     "at": 0.05,
+     "name": "whoosh",
+     "gain": -16
+    },
+    {
+     "at": 2.8,
+     "name": "pop",
+     "gain": -14
+    },
+    {
+     "at": 6.1,
+     "name": "pop",
+     "gain": -14
+    },
+    {
+     "at": 7.0,
+     "name": "murmur",
+     "gain": -18,
+     "dur": 2.4
+    },
+    {
+     "at": 8.5,
+     "name": "input/sfx/groan_crowd.wav",
+     "gain": -14
+    },
+    {
+     "at": 9.7,
+     "name": "stinger",
+     "gain": -13
+    }
+   ],
+   "amb": {
+    "name": "wind",
+    "gain": -28
+   }
+  },
+  {
+   "id": "d7",
+   "start": 71.3,
+   "end": 78.2,
+   "sfx": [
+    {
+     "at": 0.0,
+     "name": "swish",
+     "gain": -14
+    },
+    {
+     "at": 3.55,
+     "name": "pop",
+     "gain": -15
+    },
+    {
+     "at": 4.18,
+     "name": "pop",
+     "gain": -15
+    },
+    {
+     "at": 5.22,
+     "name": "pop",
+     "gain": -15
+    },
+    {
+     "at": 5.7,
+     "name": "pop",
+     "gain": -15
+    }
+   ]
+  },
+  {
+   "id": "d8",
+   "start": 78.2,
+   "end": 83.3,
+   "sfx": [
+    {
+     "at": 0.0,
+     "name": "swish",
+     "gain": -14
+    },
+    {
+     "at": 4.55,
+     "name": "hit",
+     "gain": -12
+    }
+   ]
+  },
+  {
+   "id": "d9",
+   "start": 83.3,
+   "end": 91.0,
+   "sfx": [
+    {
+     "at": 0.0,
+     "name": "swish",
+     "gain": -14
+    },
+    {
+     "at": 1.45,
+     "name": "pop",
+     "gain": -14
+    },
+    {
+     "at": 4.5,
+     "name": "counter",
+     "gain": -16,
+     "dur": 2.3
+    },
+    {
+     "at": 6.3,
+     "name": "ding",
+     "gain": -16
+    }
+   ]
+  },
+  {
+   "id": "d10",
+   "start": 91.0,
+   "end": 95.2,
+   "sfx": [
+    {
+     "at": 0.3,
+     "name": "pop",
+     "gain": -14
+    },
+    {
+     "at": 0.9,
+     "name": "ding",
+     "gain": -15
+    }
+   ],
+   "amb": {
+    "name": "roomtone",
+    "gain": -30
+   }
+  },
+  {
+   "id": "d11",
+   "start": 95.2,
+   "end": 101.9,
+   "sfx": [
+    {
+     "at": 0.49,
+     "name": "pop",
+     "gain": -16
+    },
+    {
+     "at": 5.1,
+     "name": "input/sfx/groan_single.wav",
+     "gain": -10
+    },
+    {
+     "at": 5.5,
+     "name": "heartbeat",
+     "gain": -13,
+     "dur": 1.2
+    }
+   ],
+   "amb": {
+    "name": "wind",
+    "gain": -24
+   }
+  },
+  {
+   "id": "d12",
+   "start": 101.9,
+   "end": 105.4,
+   "sfx": [
+    {
+     "at": 0.05,
+     "name": "impact",
+     "gain": -8
+    },
+    {
+     "at": 0.05,
+     "name": "input/sfx/groan_crowd.wav",
+     "gain": -7
+    }
+   ],
+   "amb": {
+    "name": "wind",
+    "gain": -24
+   }
+  }
+ ]
+}

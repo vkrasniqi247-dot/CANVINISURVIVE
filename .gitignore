@@ -4,3 +4,7 @@ renders/
 *.avi
 node_modules/
 out/
+rig/vini_export/
+rig/layers/
+rig/*.rigby
+rig/vini_preview.png
