@@ -49,6 +49,12 @@ const handOf = (p) => (typeof p === 'string' ? ARMS[p] || ARMS.down : Array.isAr
 const fwdOf = (p) => { const h = handOf(p); return h[2] ?? 14 + Math.max(0, -h[0]) * 0.8; };
 const swings = (p) => p === 'down' || p === 'relaxed';
 
+// Natural blinks: one per 2.6 s cell at a hashed offset, so the rhythm never looks mechanical; about one
+// cell in four adds a quick double blink. Pure function of time.
+const hash = (n) => { let x = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
+function blinking(t) { const C = 2.6, n = Math.floor(t / C);
+  for (const m of [n - 1, n]) { const t0 = m * C + 0.3 + hash(m) * 1.9, d = t - t0; if (d >= 0 && d < 0.12) return true; if (hash(m + 7777) < 0.25 && d >= 0.22 && d < 0.32) return true; }
+  return false; }
 // The view the art should show for a turn amount (|turn|): 'front' | 't34' | 'side'
 export const viewOf = (turn) => (Math.abs(turn) > 0.8 ? 'side' : Math.abs(turn) > 0.35 ? 't34' : 'front');
 
@@ -68,7 +74,10 @@ export function poseVini(rig, o) {
   for (const s of ['l', 'r']) { const F = pose.local[bi[`ik_foot_${s}`]]; F.x *= lerp(1, ca, 0.95); }
   rig.footRel = { l: 0, r: 0 }; rig.footRoll = { l: 0, r: 0 }; rig.stepPhase = null; rig.contact = 0;
   if (o.walkDist != null) plantedFeet(rig, o, ca);
-  if (o.crouch) pose.local[bi.hip].y -= o.crouch * K;
+  if (o.crouch) { pose.local[bi.hip].y -= o.crouch * K;
+    // front view: a bent knee points at the camera, so the legs foreshorten instead of bowing out like a frog
+    const w = clamp(1 - turn / 0.35); if (w > 0 && o.crouch > 0) { const f = 1 - (o.crouch * K * 0.92 * w) / 562;
+      for (const s of ['l', 'r']) { pose.local[bi[`thigh_${s}`]].scale_x *= f; pose.local[bi[`shin_${s}`]].scale_x *= f; } } }
   if (o.hipX) pose.local[bi.hip].x += o.hipX * K;
   if (o.breath) { const c = pose.local[bi.chest]; c.scale_y *= 1 + 0.045 * o.breath; c.scale_x *= 1 + 0.012 * o.breath; pose.local[bi.head].x += 2.5 * o.breath; }
   const arms = o.arms || ['down', 'down'];
@@ -88,7 +97,7 @@ export function poseVini(rig, o) {
   // secondary motion: hair and backpack lag behind the body (computed from motion history by the scene)
   // ---- face
   const F = FACES[o.expr || 'neutral'] || FACES.neutral;
-  const blink = o.blink !== false && ((t + (o.seed || 0) * 1.37) % 3.4 + 3.4) % 3.4 < 0.12;
+  const blink = o.blink !== false && blinking(t + (o.seed || 0) * 1.37);
   for (const m of MOUTHS) pose.attachment[si[m]] = m === F.mouth ? m : null;
   const closed = F.closed || blink, hideFar = turn > 0.8;
   // the face slides round the head toward the turn side, and the eyes get closer together (foreshortening)

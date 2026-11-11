@@ -36,7 +36,7 @@ const PHONE_HAND = [-12, 30, 34];                 // hand in front of the chest 
 // phone in his hand: the screen's light spills up over his face and hoodie (AUDIT #11)
 const inHand = (gt, mode) => (g2, h, info) => { phone(g2, h[0] + 2, h[1] - 30, 0.52, gt, mode); if (info && mode !== 'off') faceGlow(g2, gt, mode, [h[0] + 2, h[1] - 30], info.head, info.s); };
 function faceGlow(g, t, mode, ph, head, s) {
-  const col = mode === 'alert' ? '#ff4a36' : '#ffd6a0', a = mode === 'alert' ? 0.3 + 0.09 * Math.sin(t * 12) : 0.2 + 0.08 * Math.sin(t * 60);
+  const col = mode === 'alert' ? '#ff4a36' : '#ffd6a0', a = mode === 'alert' ? 0.21 + 0.07 * Math.sin(t * 12) : 0.16 + 0.06 * Math.sin(t * 60);
   g.save(); g.globalCompositeOperation = 'screen';
   g.fillStyle = radGrad(g, head[0], head[1] + 10 * s, 0, 70 * s, [alpha(col, a), alpha(col, a * 0.45), alpha(col, 0)]); g.beginPath(); g.arc(head[0], head[1] + 10 * s, 70 * s, 0, 7); g.fill();
   const mx = (ph[0] + head[0]) / 2, my = (ph[1] + head[1]) / 2;     // light between the screen and his face
@@ -92,13 +92,13 @@ const turn2 = (t) => track(t, [[37.02, 0], [37.55, -0.6], [40.95, -0.6], [41.6, 
 const drive2 = (t) => 790 + back2(t) * VS + startle(t - SHOUT) * 34 + turn2(t) * 30;
 const X_D3 = 790 + BACKD * VS;
 function d2(g, gt, A) { const t = gt - 36.5, dur = 5.3;
-  camBegin(g, A.bg.flat, punches(gt, { z: lerp(1.15, 1.32, sm(t, 0, dur)), x: lerp(760, 600, sm(t, 0, 1.6)), y: 640 }, [[SILENCE + 0.03, 0.72, { z: 2.5, x: 835, y: 640 }, 0.5]]));
+  camBegin(g, A.bg.flat, punches(gt, { z: lerp(1.42, 1.62, sm(t, 0, dur)), x: lerp(760, 610, sm(t, 0, 1.6)), y: lerp(660, 650, sm(t, 0, dur)) }, [[SILENCE + 0.03, 0.72, { z: 2.5, x: 835, y: 640 }, 0.5]]));
   const fl = startle(gt - SHOUT), freeze = gt > SILENCE, tt = freeze ? SILENCE + (gt - SILENCE) * 0.12 : gt, back = back2(gt), stepping = gt > BACK0 - 0.02;
   const gasp = so(gt, SILENCE, SILENCE + 0.18) * (1 - sm(gt, 41.2, 41.9));
   const breath = freeze ? lerp(breathe(SILENCE, 1.2, 0.7), 1, gasp) : breathe(gt, 1.2, 0.7);
   const lean = 2.6 * bump(gt, 37.7, 38.95) - 5 * fl - 3 * bump(gt, BACK0 - 0.05, BACK1 + 0.15) + 1.2 * gasp;
   const look = gt < 36.95 ? [0.25, 0.7] : gt < 40.95 ? [-0.7, gt < 37.6 ? -0.1 : 0.05] : [lerp(-0.7, 0, sm(gt, 40.95, 41.5)), 0];
-  drawVini(g, A.vini, { x: 790 + back * VS, y: 988, s: VS, t: tt, turn: turn2(gt), look, lean, headTilt: -5 * fl, hipX: 3 * fl, crouch: fl * 3 + bump(gt, BACK0, BACK1) * 1.5,
+  drawVini(g, A.vini, { x: 790 + back * VS, y: 988, s: VS, t: tt, turn: turn2(gt), look, lean, headTilt: -5 * fl, hipX: 3 * fl, crouch: fl * 2.2 + bump(gt, BACK0, BACK1) * 1.5,
     expr: pick(gt, [[0, 'scared'], [SHOUT, 'shock'], [37.4, 'worried'], [BACK0, 'scared'], [SILENCE, 'shock'], [40.7, 'scared']]),
     walkDist: stepping ? back : null, stride: BACKD, lift: 9, walkMix: 1 - sm(gt, BACK1 + 0.05, BACK1 + 0.4), breath, shake: freeze ? 0.15 * (1 - gasp * 0.5) : fl * 0.6, ...lags(drive2, gt),
     arms: [armTrack(gt, [[0, 'chest'], [SHOUT, 'face'], [37.35, 'chest'], [38.1, 'down']], 0.16),
@@ -171,8 +171,8 @@ function d5(g, gt, A) { const t = gt - 52.6, land = so(gt, FLIP0, FLIP1 + 0.25);
   const doodling = cols.some(([, , at]) => { const k = drawK(gt, at); return k > 0 && k < 1; });   // only one pen on the page at a time
   cols.forEach(([x, str, at], i) => { const k = drawK(gt, at), y = 520;
     if (i === 0) doorDoodle(g, x, y, k, sm(gt, at + 0.35, at + 0.75)); if (i === 1) windowDoodle(g, x, y, k, sm(gt, at + 0.3, at + 0.9)); if (i === 2) awayDoodle(g, A, x, y, k, gt, at);
-    const ls = str.split('|'); let t0 = at + 0.42; ls.forEach((l, j) => { writeOn(g, l, x, 800 + j * 52, wk(gt, t0, l, 24), { size: 54, pen: !doodling }); t0 += Math.max(0.25, l.length / 24) + 0.05; });
-    tick(g, x + 125, 470, 34, sm(gt, at + 0.75, at + 1.05)); });
+    const ls = str.split('|'); let t0 = at + 0.3; ls.forEach((l, j) => { writeOn(g, l, x, 800 + j * 52, wk(gt, t0, l, 24), { size: 54, pen: !doodling }); t0 += Math.max(0.25, l.length / 24) + 0.05; });
+    tick(g, x + 125, 470, 34, ease.out(clamp((gt - at - 0.66) / 0.22))); });            // ease-out: no starting speck
   g.restore(); vignette(g, 0.2); }
 
 const FN = { d1, d2, d3, d4, d5 };

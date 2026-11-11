@@ -70,5 +70,31 @@ Next: Stage 4 (notebook polish, phone glow).
 - Phone: held at chest height, larger (Stage 1); its screen light now spills over his face and hoodie (screen blend, pulsing with the alert) (#11). The rig passes each prop the face position.
 - Full-quality render: `out/day1_test.mp4` (`--crf=18`), sheet `out/day1_contact.png`.
 
+## Stage 5 — score and loop ✅ (loop 1 done)
+Full render `out/day1_test.mp4` (crf 18), sheet `out/day1_contact.png`, side-by-side with the reference `out/compare_v1_rigby_new.png` (left two columns = the reference v1 / old Rigby frames, right column = now).
+
+Loop 1 fixes (things the first scoring pass flagged):
+- d2 was a wide where his acting was too small to read → medium shot (z 1.42→1.62) that keeps him and the window both in frame.
+- Front-view dips (flinch, landing) still bowed the knees → in front view the legs now **foreshorten** (knees toward camera) instead of bending sideways.
+- Blinks were a fixed 3.4 s metronome → hashed blink times per 2.6 s cell plus occasional double blinks (still a pure function of time).
+- Phone light on his face was too hot in the close-up → toned down.
+- The green ticks still started as a speck → ease-out ticks; text under each doodle starts 0.12 s sooner.
+
+### Score (honest, /10)
+| category | baseline | now |
+|---|---|---|
+| character design | 7.0 | 8.8 |
+| character motion | 6.0 | 8.7 |
+| acting | 5.5 | 8.4 |
+| camera | 6.0 | 8.9 |
+| labels & notebook | 7.5 | 8.8 |
+| **overall** | **7.0** | **8.7** |
+
+What still holds it under 9.5:
+1. **Sound** — the placeholder v1 mix. Timing, foley and the punch-ins can only be locked to the real narration (HUMAN TASK 1). AUDIT.md's own ceiling note says the same.
+2. Profile-view hair and the lying-down wake-up are still the weakest drawings (the face reads sideways while he lies on the sofa, same staging as v1).
+3. d4's 6 s freeze is now moving (push-in) but is still the longest beat without character motion; with the real narration it may want trimming.
+**Decision:** stop looping on Day 1 here and move on to Stage 6, because the remaining points need the real voice track; more code polish without it risks re-timing everything twice.
+
 ## HUMAN TASKS
 (kept up to date; see the end of the file)
