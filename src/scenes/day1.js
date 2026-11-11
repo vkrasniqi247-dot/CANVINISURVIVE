@@ -1,7 +1,7 @@
 // src/scenes/day1.js — DAY 1 wake-up test (episode time 28.6 → 60.2), ported shot-for-shot from the v1 opening.
 // Same timing, framing and labels as v1. Changes kept from v2: a smoother get-up and handwriting write-on on the
 // notebook page. Vini is the Rigby2D rig (src/vini/rig.js). Every function here is a pure function of time.
-import { W, H, RED, INK, clamp, lerp, ease, alpha, radGrad, sm, so, pop, settle, armTrack, pick, track, camBegin, camEnd, toScreen, camShake, note, arrowTo, bigText, fade, vignette, dayCounter, notebook, inkPath, tick, cross, writeOn } from '../kit/kit.js';
+import { W, H, RED, INK, clamp, lerp, ease, alpha, radGrad, sm, so, pop, settle, armTrack, pick, track, camBegin, camEnd, punches, pageTurn, toScreen, camShake, note, arrowTo, bigText, fade, vignette, dayCounter, notebook, inkPath, tick, cross, writeOn } from '../kit/kit.js';
 import { drawVini, follow } from '../vini/rig.js';
 
 // ---------- secondary motion + breathing (deterministic: driven by motion history, see follow() in rig.js) ----------
@@ -17,7 +17,8 @@ const bump = (t, a, b) => Math.sin(Math.PI * clamp((t - a) / (b - a)));
 export const T0 = 28.6, T1 = 60.2;
 const DAY1 = 28.73, VS = 1.36;
 export const SHOTS = [['d1', 28.6, 36.5], ['d2', 36.5, 41.8], ['d3', 41.8, 46.6], ['d4', 46.6, 52.6], ['d5', 52.6, 60.2]];
-const day = (g, gt) => dayCounter(g, 1, gt, DAY1);
+let HUD = true;                                   // off while a transition draws a shot it will move/smear
+const day = (g, gt) => { if (HUD) dayCounter(g, 1, gt, DAY1); };
 
 // ---------- props ----------
 function phone(g, x, y, s, t, mode = 'off', rot = 0) {
@@ -47,7 +48,8 @@ function body1(gt) {
 // the head's position along his own body-across axis (he starts lying down, so the frame rotates)
 const drive1 = (t) => { const b = body1(t), hx = b.ox + 380 * Math.sin(b.rot), hy = b.oy - 380 * Math.cos(b.rot); return hx * Math.cos(b.rot) + hy * Math.sin(b.rot); };
 function d1(g, gt, A) {
-  const c = camBegin(g, A.bg.flat, { z: lerp(1.38, 1.18, sm(gt, 32.0, 34.5)), x: lerp(740, 800, sm(gt, 32, 34.5)), y: lerp(690, 700, sm(gt, 32, 34.5)) }, camShake(gt, 2, 32.35, 0.35));
+  const wide = { z: lerp(1.38, 1.18, sm(gt, 32.0, 34.5)), x: lerp(740, 800, sm(gt, 32, 34.5)), y: lerp(690, 700, sm(gt, 32, 34.5)) };
+  const c = camBegin(g, A.bg.flat, punches(gt, wide, [[30.7, 0.42, { z: 2.75, x: 560, y: 655 }], [34.6, 9, { z: 2.25, x: 805, y: 680 }]]), camShake(gt, 2, 32.35, 0.35));
   const { u, curl, rot, ox, oy } = body1(gt), standing = u >= 1, holding = gt >= 33.45;
   if (!holding) phone(g, 905, 742, 0.55, gt, gt > 30.2 ? 'buzz' : 'off', -1.45);
   // asleep: slow, visible breathing; a stir as the buzzing starts; a jolt when his eyes snap open
@@ -82,7 +84,7 @@ const turn2 = (t) => track(t, [[37.02, 0], [37.55, -0.6], [40.95, -0.6], [41.6, 
 const drive2 = (t) => 790 + back2(t) * VS + startle(t - SHOUT) * 34 + turn2(t) * 30;
 const X_D3 = 790 + BACKD * VS;
 function d2(g, gt, A) { const t = gt - 36.5, dur = 5.3;
-  camBegin(g, A.bg.flat, { z: lerp(1.15, 1.32, sm(t, 0, dur)), x: lerp(760, 600, sm(t, 0, 1.6)), y: 640 });
+  camBegin(g, A.bg.flat, punches(gt, { z: lerp(1.15, 1.32, sm(t, 0, dur)), x: lerp(760, 600, sm(t, 0, 1.6)), y: 640 }, [[SILENCE + 0.03, 0.72, { z: 2.5, x: 835, y: 640 }, 0.5]]));
   const fl = startle(gt - SHOUT), freeze = gt > SILENCE, tt = freeze ? SILENCE + (gt - SILENCE) * 0.12 : gt, back = back2(gt), stepping = gt > BACK0 - 0.02;
   const gasp = so(gt, SILENCE, SILENCE + 0.18) * (1 - sm(gt, 41.2, 41.9));
   const breath = freeze ? lerp(breathe(SILENCE, 1.2, 0.7), 1, gasp) : breathe(gt, 1.2, 0.7);
@@ -108,19 +110,22 @@ const turn3 = (t) => track(t, [[41.72, 0], [42.12, 1]]);
 const drive3 = (t) => X_D3 + walkD(t) * VS + turn3(t) * 30;
 function smoothStartStop(gt) { const T = WALK1 - WALK0, e = 0.25, x = clamp(gt - WALK0, 0, T); // ease in/out over 0.25 s, distance continuous
   if (x < e) return x * x / (2 * e); if (x > T - e) { const r = T - x; return (T - e) - r * r / (2 * e); } return x - e / 2; }
-function doorScene(g, gt, A) {
-  const d = walkD(gt), x = X_D3 + d * VS, c = camBegin(g, A.bg.flat, { z: 1.22, x: clamp(x + 220, 900, 1300), y: 640 });
+function doorScene(g, gt, A, cam = (v) => v) {
+  const d = walkD(gt), x = X_D3 + d * VS, c = camBegin(g, A.bg.flat, cam({ z: 1.22, x: clamp(x + 220, 900, 1300), y: 640 }, x));
   const walking = gt > WALK0 - 0.05, turn = turn3(gt);
   const speedK = clamp((walkD(gt + 0.05) - walkD(gt - 0.05)) / (0.1 * SPEED));   // 0 standing .. 1 full pace
   drawVini(g, A.vini, { x, y: 988, s: VS, t: gt, turn, walkDist: walking ? d : null, stride: SPEED * STEP, lift: 14, expr: pick(gt, [[0, 'worried'], [42.6, 'determined']]), look: [0.5, 0],
     lean: -4.5 * speedK, ...lags(drive3, gt), breath: breathe(gt, 1.3, 0.5), arms: [armTrack(gt, [[0, 'down'], [41.9, 'relaxed'], [45.55, 'point']]), armTrack(gt, [[0, [[14, 40], PHONE_HAND]], [42.0, 'relaxed']])],
     props: { right: gt < 42.15 ? inHand(gt, 'alert') : null } });
   camEnd(g); return c; }
-function d3(g, gt, A) { const c = doorScene(g, gt, A);
+const camD3 = (gt) => (v, x) => punches(gt, v, [[42.6, 0.36, { z: 2.3, x: x + 70, y: 645 }, 0.42]]);
+function d3(g, gt, A) { const c = doorScene(g, gt, A, camD3(gt));
   const [dx, dy] = toScreen(c, 1790, 520), k = pop(gt, 43.7);
   if (k > 0) { note(g, 'instinct: GO OUTSIDE', dx - 420, dy - 260, { size: 64, k }); arrowTo(g, dx - 300, dy - 220, dx - 40, dy - 60, so(gt, 43.75, 44.2)); }
   day(g, gt); vignette(g, 0.32); }
-function d4(g, gt, A) { const t = gt - 46.6, FZ = 46.45; const c = doorScene(g, FZ, A);
+// the freeze keeps moving: a slow push-in toward him over the whole 6 s
+const camD4 = (gt) => (v, x) => { const k = ease.sine(clamp((gt - 46.6) / 6.0)); return { z: v.z * (1 + 0.24 * k), x: lerp(v.x, x + 120, 0.55 * k), y: lerp(v.y, 670, k) }; };
+function d4(g, gt, A) { const t = gt - 46.6, FZ = 46.45; const c = doorScene(g, FZ, A, camD4(gt));
   const [dx, dy] = toScreen(c, 1790, 520);
   note(g, 'instinct: GO OUTSIDE', dx - 420, dy - 260, { size: 64 }); arrowTo(g, dx - 300, dy - 220, dx - 40, dy - 60, 1);
   g.save(); g.globalCompositeOperation = 'saturation'; g.fillStyle = `rgba(128,128,128,${0.85 * so(t, 0, 0.25)})`; g.fillRect(0, 0, W, H); g.restore();
@@ -137,7 +142,7 @@ function windowDoodle(g, x, y, k, curtainK) { inkPath(g, [[x - 90, y - 90], [x +
   const c = ease.inOut(clamp(curtainK)); if (c > 0) for (const sd of [-1, 1]) { const w = 92 * c; g.fillStyle = '#b84a3a'; g.strokeStyle = INK; g.lineWidth = 5; g.beginPath(); g.moveTo(x + sd * 96, y - 100); g.lineTo(x + sd * (96 - w), y - 100); for (let i = 0; i <= 6; i++) g.lineTo(x + sd * (96 - w + Math.sin(i * 1.4) * 6), y - 100 + i * 34); g.lineTo(x + sd * 96, y + 104); g.closePath(); g.fill(); g.stroke(); } }
 function awayDoodle(g, A, x, y, k, gt, t0) { windowDoodle(g, x + 60, y - 10, k, 0); const p = sm(gt, t0 + 0.2, t0 + 0.9), px = x - 60 - 110 * p;
   if (k > 0.6) { g.save(); g.globalAlpha = clamp((k - 0.6) * 2.5); drawVini(g, A.vini, { x: px, y: y + 110, s: 0.55, t: gt, walkDist: -110 * p / 0.55, stride: 22, expr: 'worried', look: [-1, 0], arms: ['relaxed', 'relaxed'], shadow: false }); g.restore(); arrowTo(g, x - 10, y + 125, x - 190, y + 125, p, RED, 0); } }
-function d5(g, gt, A) { const t = gt - 52.6; notebook(g, gt); fade(g, 1 - so(t, 0, 0.25));
+function d5(g, gt, A) { const t = gt - 52.6; notebook(g, gt);
   writeOn(g, 'RULE 1', 360, 165, wk(gt, 52.78, 'RULE 1', 9), { size: 92, color: RED, font: 'Permanent Marker', rot: -0.02 });
   writeOn(g, 'STAY INSIDE', W * 0.6, 168, wk(gt, 54.3, 'STAY INSIDE', 11), { size: 78, color: '#2a2622', font: 'Permanent Marker' });
   const cols = [[520, 'lock|the door', 55.8], [960, 'close|the curtains', 56.72], [1400, 'stay away|from windows', 58.24]];
@@ -148,7 +153,27 @@ function d5(g, gt, A) { const t = gt - 52.6; notebook(g, gt); fade(g, 1 - so(t, 
   vignette(g, 0.2); }
 
 const FN = { d1, d2, d3, d4, d5 };
+const shotAt = (gt) => SHOTS.find(([, a, b]) => gt >= a && gt < b) || SHOTS[SHOTS.length - 1];
+const drawShot = (g, gt, A) => { g.save(); FN[shotAt(gt)[0]](g, gt, A); g.restore(); };
+
+// ---------- transitions ----------
+// Whip pan d2 -> d3 (he's about to head right, so the camera whips right): each side of the cut slides
+// toward screen-left with a growing horizontal smear (a running average of offset copies), slightly zoomed so
+// the edges never show. Page-flip d4 -> d5: the frozen frame turns over like a page to the notebook.
+const WHIP = 41.8, WHIP_H = 0.16, FLIP0 = 52.42, FLIP1 = 52.92;
+let off = null;
+function whip(g, gt, A) {
+  off = off || Object.assign(document.createElement('canvas'), { width: W, height: H });
+  const og = off.getContext('2d'); og.setTransform(1, 0, 0, 1, 0, 0); og.clearRect(0, 0, W, H); HUD = false; drawShot(og, gt, A); HUD = true;
+  const w = (gt - WHIP) / WHIP_H, e = w < 0 ? ease.in(1 + w) : 1 - ease.out(w);   // 0 at the ends, 1 at the cut
+  const dx = (w < 0 ? -1 : 1) * 300 * e, smear = 620 * e, N = 12;
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  g.save(); g.translate(W / 2, H / 2); g.scale(1 + 0.1 * e, 1 + 0.1 * e); g.translate(-W / 2, -H / 2);
+  for (let i = 0; i < N; i++) { g.globalAlpha = 1 / (i + 1); g.drawImage(off, dx - (i / (N - 1) - 0.5) * smear, 0); }
+  g.restore(); g.globalAlpha = 1; day(g, gt);
+}
 export function drawDay1(g, gt, A) {
-  const s = SHOTS.find(([, a, b]) => gt >= a && gt < b) || SHOTS[SHOTS.length - 1];
-  g.save(); FN[s[0]](g, gt, A); g.restore();
+  if (Math.abs(gt - WHIP) < WHIP_H) return whip(g, gt, A);
+  if (gt > FLIP0 && gt < FLIP1) return pageTurn(g, (gt - FLIP0) / (FLIP1 - FLIP0), () => { g.save(); d4(g, Math.min(gt, 52.59), A); g.restore(); }, () => { g.save(); d5(g, Math.max(gt, 52.6), A); g.restore(); });
+  drawShot(g, gt, A);
 }

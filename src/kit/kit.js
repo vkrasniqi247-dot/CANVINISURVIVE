@@ -43,9 +43,20 @@ export function shadow(g, x, y, s, a = 0.36) { g.fillStyle = `rgba(25,20,16,${a}
 
 // ---------- camera over a background image ----------
 // view: { z (>=1), x, y } = zoom and the background point at screen centre. Clamped so the image always fills the frame.
+// v.blur (px) softens the background only (punch-in depth of field): characters drawn after stay sharp.
 export function camBegin(g, img, v, shake = [0, 0]) { const z = Math.max(1, v.z || 1), hw = W / 2 / z, hh = H / 2 / z;
   const cx = clamp(v.x ?? W / 2, hw, W - hw), cy = clamp(v.y ?? H / 2, hh, H - hh);
-  g.save(); g.translate(W / 2 + shake[0], H / 2 + shake[1]); g.scale(z, z); g.translate(-cx, -cy); g.drawImage(img, 0, 0, W, H); return { z, cx, cy }; }
+  g.save(); g.translate(W / 2 + shake[0], H / 2 + shake[1]); g.scale(z, z); g.translate(-cx, -cy);
+  if (v.blur > 0.05) { g.filter = `blur(${v.blur.toFixed(2)}px)`; g.drawImage(img, -8, -8, W + 16, H + 16); g.filter = 'none'; } else g.drawImage(img, 0, 0, W, H);
+  return { z, cx, cy }; }
+// ---------- punch-in close-ups ----------
+// 0 → 1 with an overshoot on the way in (inDur), held, then eased back out (outDur). Infinity hold = stays in.
+export function punchK(t, t0, hold = 0.5, inDur = 0.24, outDur = 0.45) { if (t <= t0) return 0; const a = ease.outBack(clamp((t - t0) / inDur));
+  return a * (1 - ease.inOut(clamp((t - t0 - inDur - hold) / outDur))); }
+// blend a wide camera toward a close-up {z, x, y} by k (k may overshoot past 1), with background blur
+export function punchView(v, close, k, blur = 3.5) { if (k <= 0) return v; return { z: lerp(v.z, close.z, k), x: lerp(v.x, close.x, k), y: lerp(v.y, close.y, k), blur: blur * clamp(k) }; }
+// sum of several punch-ins on one shot: [[t0, hold, close], ...] -> the active one (they never overlap)
+export function punches(t, v, list) { for (const [t0, hold, close, outDur] of list) { const k = punchK(t, t0, hold, 0.24, outDur ?? 0.45); if (k > 0) return punchView(v, typeof close === 'function' ? close(t) : close, k); } return v; }
 export const camEnd = (g) => g.restore();
 export const toScreen = (c, x, y) => [W / 2 + (x - c.cx) * c.z, H / 2 + (y - c.cy) * c.z];
 export function camShake(t, amp, t0 = -1, dur = 1e9) { if (t < t0 || t > t0 + dur) return [0, 0]; const k = t0 < 0 ? 1 : 1 - (t - t0) / dur; return [Math.sin(t * 53) * amp * k, Math.cos(t * 47) * amp * 0.6 * k]; }
@@ -137,3 +148,10 @@ export function writeOn(g, str, x, y, k, o = {}) { if (k <= 0) return; const { s
   g.beginPath(); g.rect(x0 - 10, -size, (w + 20) * kk, size * 2); g.clip(); g.fillStyle = color; g.fillText(str, x0, 0);
   g.restore(); if (kk < 1 && o.pen !== false) { const px = x + (align === 'center' ? -w / 2 : 0) + w * kk; pen(g, px, y + size * 0.15); } }
 export function pen(g, x, y) { g.save(); g.translate(x, y); g.rotate(-0.55); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(6, 8, 18, 150); g.fillStyle = '#2a2a30'; g.beginPath(); g.moveTo(0, 0); g.lineTo(-9, -24); g.lineTo(9, -24); g.closePath(); g.fill(); g.fillStyle = '#c8262e'; g.fillRect(-9, -150, 18, 126); g.fillStyle = '#1a1a1e'; g.fillRect(-9, -160, 18, 14); g.restore(); }
+
+// ---------- page turn (ported from v1 kit): the current frame A curls away right-to-left to reveal B ----------
+export function pageTurn(g, k, drawA, drawB) { if (k <= 0) return drawA(); if (k >= 1) return drawB(); const e = ease.inOut(k), fx = lerp(W + 60, -W * 0.2, e);
+  drawB(); g.save(); g.beginPath(); g.moveTo(0, 0); g.lineTo(fx, 0); g.lineTo(fx - 160 * Math.sin(e * Math.PI), H); g.lineTo(0, H); g.closePath(); g.clip(); drawA(); g.restore();
+  // the curl: back of the page + shadow
+  g.save(); g.fillStyle = 'rgba(0,0,0,0.28)'; g.beginPath(); g.moveTo(fx, 0); g.lineTo(fx + 40, 0); g.lineTo(fx + 40 - 160 * Math.sin(e * Math.PI), H); g.lineTo(fx - 160 * Math.sin(e * Math.PI), H); g.closePath(); g.fill();
+  const cw = 120 * Math.sin(e * Math.PI); g.fillStyle = '#d8d0bb'; g.beginPath(); g.moveTo(fx, 0); g.lineTo(fx - cw, 0); g.lineTo(fx - cw - 160 * Math.sin(e * Math.PI), H); g.lineTo(fx - 160 * Math.sin(e * Math.PI), H); g.closePath(); g.fill(); g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 2; g.stroke(); g.restore(); }

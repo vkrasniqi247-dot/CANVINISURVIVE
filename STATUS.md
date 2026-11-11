@@ -54,5 +54,15 @@ Next: Stage 2 (follow-through, breathing, d2 acting beats).
 Score after Stage 2: design 8.3 · motion 8.0 · acting 7.4 · camera 6.0 · labels & notebook 7.5 · **overall 8.0**.
 Next: Stage 3 (punch-ins, d4 push-in, transitions).
 
+## Stage 3 — camera and cutting (AUDIT #3, #12, #13) ✅
+- `kit.js`: `punchK` / `punchView` / `punches`: a 0.24 s zoom with an outBack overshoot, a hold, and a 0.45 s ease out; the background (painted plate only) blurs up to 3.5 px while the character stays sharp, which reads as a shallow depth of field.
+- Punch-ins: wake-up shock 30.7 (z 2.75 on his face, out before "47 missed calls"), EMERGENCY ALERT 34.6 (held to the cut, so the cut to the d2 wide acts as the pull-back), "…silence" 40.0 (z 2.5), determined 42.6 (z 2.3, tracks him while he walks, out before the "instinct" label at 43.7).
+- d4 freeze: a slow 6 s sine push-in (+24 % zoom, drifting toward him); labels are anchored to the scene so they ride the push.
+- Whip pan d2 → d3 at 41.8 (±0.16 s): shot rendered offscreen, slid left with a growing 12-tap running-average smear and a 10 % zoom so no edge shows; the DAY counter stays steady on top. **Decision:** whip rather than a match cut, because he changes screen position and direction between the shots, and a whip in his travel direction sells the "instinct" impulse.
+- Page flip d4 → d5 (52.42–52.92): v1's `pageTurn` ported into `kit.js`; replaces the fade from black.
+
+Score after Stage 3: design 8.3 · motion 8.0 · acting 7.6 · camera 8.6 · labels & notebook 7.6 · **overall 8.4**.
+Next: Stage 4 (notebook polish, phone glow).
+
 ## HUMAN TASKS
 (kept up to date; see the end of the file)
