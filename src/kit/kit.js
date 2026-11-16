@@ -130,6 +130,7 @@ const fwdDefault = (h) => h[2] ?? 14 + Math.max(0, -h[0]) * 0.8;
 // any arm spec -> [elbow, [hx, hy, fwd]]: a preset name, a [elbow, hand] pair, or a bare hand [x, y(, fwd)]
 const resolve = (p) => { if (typeof p === 'string') { const e = INK_ARMS[p] || INK_ARMS.down; return [e[0], [e[1][0], e[1][1], ARM_FWD[p] ?? 3]]; }
   if (Array.isArray(p[0])) return [p[0], [p[1][0], p[1][1], fwdDefault(p[1])]]; return [[p[0] * 0.5, p[1] * 0.5], [p[0], p[1], fwdDefault(p)]]; };
+export const resolveArm = (p) => resolve(p);   // used by kit/motion.js
 export function armLerp(a, b, k) { const A = resolve(a), B = resolve(b); k = ease.inOut(clamp(k)); return [[lerp(A[0][0], B[0][0], k), lerp(A[0][1], B[0][1], k)], [lerp(A[1][0], B[1][0], k), lerp(A[1][1], B[1][1], k), lerp(A[1][2], B[1][2], k)]]; }
 // keyed arm track: [[t, preset], ...] with blend duration bd
 export function armTrack(t, keys, bd = 0.28) { let cur = keys[0][1]; for (let i = 1; i < keys.length; i++) { if (t < keys[i][0]) break; const prev = keys[i - 1][1]; cur = armLerp(prev, keys[i][1], (t - keys[i][0]) / bd); } return resolve(cur); }

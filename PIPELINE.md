@@ -3,6 +3,7 @@
 - **Vini rig:** `rig/` holds the layered art (`vini.psd`) and the scripts that rig it with Rigby2D (`build_rig.sh`). The exported rig lives in `public/vini/`.
 - **Runtime:** `src/rigby/core` is the Rigby2D JS runtime. `src/vini/rig.js` poses and draws Vini each frame (arm presets, faces, planted-feet walking, crouch, hand props).
 - **Scenes:** `src/scenes/*.js` draw one stretch of the episode as a pure function of episode time. `src/kit/kit.js` has the camera, labels, DAY counter, supply tracker, notebook and write-on helpers.
+- **Motion:** `src/kit/motion.js` has the spring moves (`armSpring`, `move`, `trackSpring`), `overlap` and the always-on idle (`withAlive`). Rules for using them are in `MOTION_RULES.md`.
 - **Zombies:** `rig/zombie_parts.html` → `node rig/build_rig.mjs zombie` → `public/zombie/`; drawn by `src/zombie/zombie.js` with the same runtime.
 - **Rebuild a rig (Windows OK):** `node rig/build_rig.mjs vini` or `node rig/build_rig.mjs zombie` (needs Rigby2D at `../rigby2d`).
 - **Video:** Remotion compositions live in `src/*.jsx`: `Day1Test` (28.6–60.2), `Opening` (0–105.4), `RigTest` (5 check sheets, frames 0–4).
