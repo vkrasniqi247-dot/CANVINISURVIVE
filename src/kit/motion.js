@@ -6,6 +6,7 @@
 //   overlap                      a child part trails its parent, then catches up (head after chest, etc.)
 //   alive / withAlive            weight shift, head drift, eye darts while he "does nothing"
 import { clamp, lerp, ease, resolveArm } from './kit.js';
+import { FACES } from '../vini/rig.js';
 
 // ---------- spring step: 0 -> 1 starting at dt = 0, overshooting when damp < 1 ----------
 // freq = how fast (Hz), damp = how quickly it settles (1 = no overshoot, 0.5 = ~16% overshoot, 0.62 = ~8%).
@@ -94,4 +95,21 @@ export function withAlive(o, t, cfg) {
   const a = alive(t, cfg), look = o.look || [0, 0];
   return { ...o, hipX: (o.hipX || 0) + a.hipX, lean: (o.lean || 0) + a.lean, headTilt: (o.headTilt || 0) + a.headTilt,
     look: [clamp(look[0] + a.look[0], -1, 1), clamp(look[1] + a.look[1], -1, 1)] };
+}
+
+// ---------- faces ----------
+// Keyed expressions that change like a face does: [[t, 'worried'], [t, 'shock'], ...] -> a face for drawVini's `expr`.
+// The brows travel to the new shape with a small overshoot instead of snapping; most changes pass through a
+// blink; shock and terror skip the blink and pop the eyes wide (then ease back to slightly wide); a happy or
+// relieved face squeezes the eyes a touch. bd = how long the change takes.
+const WIDE = { shock: 1.14, terror: 1.2, scared: 1.07 }, NARROW = { determined: 0.9, happy: 0.94, exhausted: 0.88 };
+export function exprTrack(t, keys, bd = 0.2) {
+  let i = 0; for (let j = 0; j < keys.length; j++) if (t >= keys[j][0]) i = j;
+  const nb = keys[i][1], na = i ? keys[i - 1][1] : nb, B = FACES[nb] || FACES.neutral, A = FACES[na] || FACES.neutral;
+  const dt = t - keys[i][0], k = i ? clamp(dt / bd) : 1, e = ease.outBack(k), pop = !!WIDE[nb] && nb !== 'scared';
+  const rest = (n) => WIDE[n] ?? NARROW[n] ?? 1;
+  const eyeScale = lerp(rest(na), rest(nb), ease.out(k)) + (i && pop ? 0.3 * Math.exp(-dt * 7) * Math.min(1, dt / 0.05) : 0);
+  const blinkNow = i > 0 && !pop && k > 0.12 && k < 0.6;
+  return { mouth: k < (pop ? 0.05 : 0.4) ? A.mouth : B.mouth, brow: [lerp(A.brow[0], B.brow[0], e), lerp(A.brow[1], B.brow[1], e)],
+    closed: blinkNow || (k < 0.4 ? A.closed : B.closed) ? 1 : 0, eyeScale, mouthScale: 1 + (i && pop ? 0.25 * Math.exp(-dt * 6) : 0) };
 }

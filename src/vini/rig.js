@@ -39,7 +39,7 @@ const worldAngle = (m) => Math.atan2(m.b, m.a) * DEG;
 // The optional third number is how far forward (toward his front) the hand sits; it shows when he turns.
 export const ARMS = { down: [10, 88, 3], relaxed: [6, 88, 2], hips: [6, 66, -6], out: [80, 36, 26], wave: [40, -74, 8], up: [16, -94, 6], hold: [-6, 64, 30], chest: [-16, 36, 24], point: [90, -2, 84], shrug: [52, 6, 8], face: [-6, -32, 28], cold: [-22, 40, 20], reach: [52, -84, 40], carry: [2, 70, 28], torch: [70, 30, 60] };
 const K = 4, SHX = 23, HEADR = 35.62 * K, GAP = 35.62 * 0.34 * K;
-const FACES = {
+export const FACES = {
   neutral: { mouth: 'mouth', brow: [0, 0] }, worried: { mouth: 'mouth_wobble', brow: [12, 8] }, scared: { mouth: 'mouth_wobble', brow: [18, 14] },
   terror: { mouth: 'mouth_scream', brow: [22, 18] }, shock: { mouth: 'mouth_o', brow: [0, 22] }, happy: { mouth: 'mouth_smile', brow: [0, 6] },
   determined: { mouth: 'mouth', brow: [-16, -6] }, exhausted: { mouth: 'mouth_o', brow: [6, -4] }, sleep: { mouth: 'mouth', brow: [0, -4], closed: 1 }, relief: { mouth: 'mouth_smile', brow: [10, 6], closed: 1 },
@@ -101,7 +101,7 @@ export function poseVini(rig, o) {
   if (sq) { const c = pose.local[bi.chest]; c.scale_x *= 1 - 0.035 * sq; c.scale_y *= 1 + 0.025 * sq; }
   // secondary motion: hair and backpack lag behind the body (computed from motion history by the scene)
   // ---- face
-  const F = FACES[o.expr || 'neutral'] || FACES.neutral;
+  const F = (o.expr && typeof o.expr === 'object' ? o.expr : FACES[o.expr || 'neutral']) || FACES.neutral;   // a name, or a blended face from exprTrack()
   const blink = o.blink !== false && blinking(t + (o.seed || 0) * 1.37);
   for (const m of MOUTHS) if (si[m] !== undefined) pose.attachment[si[m]] = m === F.mouth ? m : null;
   const closed = F.closed || blink, hideFar = turn > 0.8;
@@ -118,6 +118,10 @@ export function poseVini(rig, o) {
     pose.local[bi[`eye_${s}`]].y -= shiftX(x0);
   }
   pose.local[bi.mouth].y -= fc * 1.08;
+  // eyes widen (shock) or narrow, the mouth stretches: F.eyeScale / F.mouthScale from exprTrack(), or o.eyeScale / o.mouthScale
+  const es = F.eyeScale ?? o.eyeScale, ms = F.mouthScale ?? o.mouthScale;
+  if (es && es !== 1) for (const n of ['eye_l', 'eye_r']) { pose.local[bi[n]].scale_x *= es; pose.local[bi[n]].scale_y *= es; }
+  if (ms && ms !== 1) { pose.local[bi.mouth].scale_x *= ms; pose.local[bi.mouth].scale_y *= ms; }
   if (o.look) for (const n of ['eye_l', 'eye_r']) { const b = bi[n]; pose.local[b].x += o.look[1] * -10; pose.local[b].y -= o.look[0] * 12 * lerp(1, 0.5, sa); }   // + = screen-right
   // ---- view art
   // ---- view + outfit art: '<part><outfit><view>' falling back to '<part><outfit>', '<part><view>', '<part>'
