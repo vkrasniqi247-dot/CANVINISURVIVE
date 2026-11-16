@@ -7,15 +7,15 @@ import { drawVini, follow } from '../vini/rig.js';
 import { armSpring, overlap, withAlive, trackSpring, move, exprTrack } from '../kit/motion.js';
 
 export const MARKET_T1 = 12.6;
-const VS = 1.3, FLOOR = 930, STRIDE = 30;
+const VS = 1.3, FLOOR = 930, STRIDE = 34, PACE = 76;     // v1 units: step length, and units per second at full pace
 // ---- the walk: 7 steps, a freeze, then 3 more to the trolley. Distance in v1 units; feet stay planted.
 // The total ends a fraction into a step where the walk's hip offset is zero, so he settles without a pop.
-const D1 = STRIDE * 7, D2 = STRIDE * 3.1087, WA = [0.4, 3.9], WB = [5.7, 7.3];
-function seg(t, [a, b], D) { const T = b - a, e = 0.25, x = clamp(t - a, 0, T);     // eased start and stop, constant pace between
+const D1 = STRIDE * 7, D2 = STRIDE * 3.1087, WA = [0.5, 3.9], WB = [5.7, 7.3];
+function seg(t, [a, b], D) { const T = b - a, e = 0.4, x = clamp(t - a, 0, T);      // eases in and out over 0.4 s, constant pace between
   const s = x < e ? x * x / (2 * e) : x > T - e ? (T - e) - (T - x) ** 2 / (2 * e) : x - e / 2; return D * s / (T - e); }
 const dist = (t) => seg(t, WA, D1) + seg(t, WB, D2);
 const X0 = 1245 - (D1 + D2) * VS, xAt = (t) => X0 + dist(t) * VS;
-const speedK = (t) => clamp((dist(t + 0.05) - dist(t - 0.05)) / (0.1 * 62));
+const speedK = (t) => clamp((dist(t + 0.05) - dist(t - 0.05)) / (0.1 * PACE));
 // ---- beats
 const HALT = 3.9, SPOT = 5.3, REACH = 7.85, GRAB = 8.22, LOWER = 9.25, CLANG = 9.9, HIDE = 10.9;
 const startle = (dt) => (dt <= 0 ? 0 : Math.sin(Math.min(1, dt / 0.09) * Math.PI / 2) * Math.exp(-Math.max(0, dt - 0.09) * 5.5));
@@ -59,10 +59,12 @@ export function drawMarket(g, t, A) {
   const armL = armSpring(t, [[0, SNEAK_L], [HALT - 0.02, 'out'], [HALT + 0.25, 'chest'], [SPOT + 0.2, 'relaxed'], [REACH, BACK], [GRAB + 0.25, 'up'], [LOWER - 0.1, 'relaxed'], [CLANG, 'face'], [CLANG + 0.6, [-10, 38, 22]]], { feel: 'snappy', windUp: 0.05 });
   // screen-right arm: creeps, flares, points at the trolley, reaches in, lifts the tin high, lowers it to look, clutches it
   const armR = armSpring(t, [[0, SNEAK_R], [HALT, 'out'], [HALT + 0.3, SNEAK_R], [SPOT + 0.12, 'point'], [SPOT + 0.9, 'relaxed'], [REACH, REACH_HAND], [GRAB + 0.12, RAISE_HAND], [LOWER, SHOW_HAND], [CLANG + 0.05, CLUTCH_HAND]], { delay: 0.04 });
-  const headTilt = overlap(leanAt, t, 0.09, 0.8) + 5 * bump(t, HALT + 0.2, 4.75) - 6 * bump(t, 4.75, SPOT) + 8 * bump(t, GRAB + 0.2, LOWER + 0.3) - 6 * fl + 9 * hide;
+  const step = dist(t) / STRIDE, wk = speedK(t);                       // step phase and how much he is walking (0..1)
+  for (const [h, ph] of [[armL[1], 0], [armR[1], 1]]) { const sw = Math.sin(Math.PI * (step + ph)) * wk; h[2] += sw * 9; h[1] -= Math.abs(sw) * 3; }   // creeping hands sway with the steps, opposite each other
+  const headTilt = -1.2 * Math.sin(2 * Math.PI * step) * wk + overlap(leanAt, t, 0.09, 0.8) + 5 * bump(t, HALT + 0.2, 4.75) - 6 * bump(t, 4.75, SPOT) + 8 * bump(t, GRAB + 0.2, LOWER + 0.3) - 6 * fl + 9 * hide;
   const energy = (1 - 0.7 * speedK(t)) * (t > CLANG ? 0.35 : 1);
   drawVini(g, A.vini, withAlive({ x, y: FLOOR, s: VS, t, turn: turnAt(t), expr, look, lean: leanAt(t), headTilt, hipX: 4 * fl - 2 * startle(t - HALT), crouch: crouchAt(t),
-    walkDist: dist(t), stride: STRIDE, lift: t < 5 ? 17 : 12, walkMix: 1 - sm(t, WB[1] + 0.05, WB[1] + 0.45), ...lags(t), breath: breathe(t, t > CLANG ? 0.7 : 1.4, t > CLANG ? 0.9 : 0.5),
+    walkDist: dist(t), stride: STRIDE, lift: t < 5 ? 14 : 12, smoothGait: true, walkSquash: 0.25, walkMix: 1 - sm(t, WB[1] + 0.05, WB[1] + 0.45), ...lags(t), breath: breathe(t, t > CLANG ? 0.7 : 1.4, t > CLANG ? 0.9 : 0.5),
     squash: 0.8 * startle(t - HALT) + fl, shake: t > CLANG ? 0.3 + 0.5 * fl : 0.25 * startle(t - HALT), arms: [armL, armR],
     props: { right: held ? (g2, h, info) => tin(g2, h[0] + 2, h[1] - 14 * info.s, 0.95 * info.s / VS, 0.1 - 0.5 * fl) : null } }, t, { energy }));
   camEnd(g);

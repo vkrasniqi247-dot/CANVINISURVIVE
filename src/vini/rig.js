@@ -66,7 +66,7 @@ export const viewOf = (turn) => (Math.abs(turn) > 0.8 ? 'side' : Math.abs(turn) 
 //       shake, headTilt, lean, crouch (v1 units the hips drop, knees bend), hipX, swing, seed,
 //       turn (-1..1), walkDist/stride/lift (planted-feet travel), breath (0..1 extra chest rise),
 //       hairLag / packLag (degrees of follow-through, from secondary()), squash (0..1 contact squash),
-//       armSwing (0..1 arm swing that follows the steps when walking)
+//       armSwing (0..1 arm swing that follows the steps when walking), smoothGait (true = no corner in the hip bob)
 // Internal mirroring for left turns happens in drawVini; poseVini always sees turn >= 0.
 export function poseVini(rig, o) {
   const { sk, pose, bi, si } = rig; pose.reset(sk);
@@ -183,7 +183,8 @@ function plantedFeet(rig, o, ca) {
     // heel-toe: toe pushes off as the foot lifts, toe comes up before the heel strikes (only while swinging)
     if (mv < 1 && ad > 0.01) rig.footRoll[side] = dir * (-24 * Math.sin(Math.PI * clamp(mv / 0.4)) * (mv < 0.4 ? 1 : 0) + 18 * Math.sin(Math.PI * clamp((mv - 0.5) / 0.5) * 0.5) * (mv > 0.5 ? 1 : 0) * (1 - smooth(clamp((mv - 0.92) / 0.08)))) * ramp;
   }
-  const pass = Math.abs(Math.sin(Math.PI * p)), contact = (1 - pass) ** 3;
+  // o.smoothGait: the hips ride a smooth wave (sin²) instead of |sin|, which has a sharp corner at every footfall
+  const pass = o.smoothGait ? Math.sin(Math.PI * p) ** 2 : Math.abs(Math.sin(Math.PI * p)), contact = (1 - pass) ** 3;
   const hip = pose.local[bi.hip]; hip.y += (pass * 2.2 - contact * 2.5) * K * ramp;
   pose.local[bi.chest].rotation += Math.sin(Math.PI * p) * 1.8 * ca;
   rig.contact = contact * ramp;
