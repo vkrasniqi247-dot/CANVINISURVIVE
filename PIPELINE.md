@@ -6,7 +6,7 @@
 - **Motion:** `src/kit/motion.js` has the spring moves (`armSpring`, `move`, `trackSpring`), `overlap` and the always-on idle (`withAlive`). Rules for using them are in `MOTION_RULES.md`.
 - **Zombies:** `rig/zombie_parts.html` → `node rig/build_rig.mjs zombie` → `public/zombie/`; drawn by `src/zombie/zombie.js` with the same runtime.
 - **Rebuild a rig (Windows OK):** `node rig/build_rig.mjs vini` or `node rig/build_rig.mjs zombie` (needs Rigby2D at `../rigby2d`).
-- **Video:** Remotion compositions live in `src/*.jsx`: `Day1Test` (28.6–60.2), `Opening` (0–105.4), `RigTest` (5 check sheets, frames 0–4).
+- **Video:** Remotion compositions live in `src/*.jsx`: `Day1Test` (28.6–60.2), `Opening` (0–105.4), `RigTest` (5 check sheets, frames 0–4), `MarketTest` (12.6 s motion test in the supermarket, `src/scenes/market.js`).
 - **Contact sheet:** `python tools/contact_sheet.py out/day1_test.mp4 out/sheet.png` (2 fps, time-stamped).
 
 ```
