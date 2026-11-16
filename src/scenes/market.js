@@ -7,10 +7,9 @@ import { drawVini, follow } from '../vini/rig.js';
 import { armSpring, overlap, withAlive, trackSpring, move, exprTrack } from '../kit/motion.js';
 
 export const MARKET_T1 = 12.6;
-const VS = 1.3, FLOOR = 930, STRIDE = 34, PACE = 76;     // v1 units: step length, and units per second at full pace
-// ---- the walk: 7 steps, a freeze, then 3 more to the trolley. Distance in v1 units; feet stay planted.
-// The total ends a fraction into a step where the walk's hip offset is zero, so he settles without a pop.
-const D1 = STRIDE * 7, D2 = STRIDE * 3.1087, WA = [0.5, 3.9], WB = [5.7, 7.3];
+const VS = 1.3, FLOOR = 930, STRIDE = 58, PACE = 96;     // v1 units: step length, and units per second at full pace
+// ---- the walk: 5 long steps, a freeze, then 2 more to the trolley. Distance in v1 units; feet stay planted.
+const D1 = STRIDE * 5, D2 = STRIDE * 2, WA = [0.5, 3.9], WB = [5.7, 7.3];
 function seg(t, [a, b], D) { const T = b - a, e = 0.4, x = clamp(t - a, 0, T);      // eases in and out over 0.4 s, constant pace between
   const s = x < e ? x * x / (2 * e) : x > T - e ? (T - e) - (T - x) ** 2 / (2 * e) : x - e / 2; return D * s / (T - e); }
 const dist = (t) => seg(t, WA, D1) + seg(t, WB, D2);
@@ -27,7 +26,7 @@ const sneak = (t) => 1 - sm(t, SPOT, SPOT + 0.3);                      // hunche
 // lean: + = toward screen-left. He faces right until the clang, so forward = negative.
 const leanAt = (t) => -4 * speedK(t) - 4 * sneak(t) + 7 * startle(t - HALT) - 7 * bump(t, SPOT + 0.05, SPOT + 1.0) - 15 * bump(t, REACH - 0.1, GRAB + 0.5)
   + trackSpring(t, [[0, 0], [GRAB + 0.3, 7], [CLANG, 0], [CLANG + 0.45, -7], [HIDE, 11]], { feel: 'heavy', windUp: 0.05 }) - 10 * startle(t - CLANG);
-const crouchAt = (t) => 3 * sneak(t) + 5 * bump(t, HALT - 0.05, HALT + 0.5) + 4 * bump(t, SPOT, SPOT + 0.25) + 5 * bump(t, REACH, GRAB + 0.4) + 3 * bump(t, GRAB + 0.15, GRAB + 0.45)
+const crouchAt = (t) => 1.2 * sneak(t) + 5 * bump(t, HALT - 0.05, HALT + 0.5) + 4 * bump(t, SPOT, SPOT + 0.25) + 5 * bump(t, REACH, GRAB + 0.4) + 3 * bump(t, GRAB + 0.15, GRAB + 0.45)
   + 7 * startle(t - CLANG) + move(t, 0, 17, HIDE, { feel: 'heavy', windUp: 0.06 }) + Math.max(0, settle(t, WB[1] + 0.3, 2.5, 12, 7));
 const drive = (t) => xAt(t) + turnAt(t) * 30 - leanAt(t) * 4;
 // hair barely moves (a stiff cap of hair); the backpack keeps its swing

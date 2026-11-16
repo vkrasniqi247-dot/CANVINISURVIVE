@@ -24,6 +24,9 @@ export async function loadRig(url, file) {
   const rig = { sk: skeleton, pose: new Pose(skeleton), imgs, bi, si, has, anim: Object.fromEntries(skeleton.animations.map((a) => [a.name, a])) };
   // setup-pose foot angles (to keep the feet level whatever the IK does to the shins)
   rig.pose.reset(skeleton); rig.pose.updateWorld(skeleton);
+  // leg measurements in the setup pose: full leg length, and hip-joint-to-ankle distance when standing
+  { const W = rig.pose.world, th = W[bi.thigh_l], sh = W[bi.shin_l], ft = W[bi.foot_l], d = (a, b) => Math.hypot(a.tx - b.tx, a.ty - b.ty);
+    rig.legLen = d(th, sh) + d(sh, ft); rig.legRest = d(th, ft); }
   rig.footRest = Object.fromEntries(['l', 'r'].map((s) => [s, worldAngle(rig.pose.world[bi[`foot_${s}`]])]));
   // draw orders: front = as rigged; turned = far arm and far leg behind the body, near ones in front
   const S = skeleton.slots.map((s) => s.name), FRONT = S.map((_, i) => i);
@@ -178,14 +181,22 @@ function plantedFeet(rig, o, ca) {
     // walkMix < 1 brings the feet back together after the last step (the moving foot lifts in a small arc)
     const wm = o.walkMix ?? 1, rel = dir * (worldX - ad) * K * ramp * wm;
     const lf = side === 'r' ? 1 - (o.drag ?? 0) * 0.75 : 1;          // o.drag: the right foot barely lifts (a zombie's dragged leg)
-    F.x = b.x * lerp(1, ca, 0.95) + rel; F.y = b.y + (mv < 1 && ad > 0.01 ? Math.sin(Math.PI * mv) * lift * lf * K : 0) + Math.abs(rel / wm || 0) * wm * (1 - wm) * 1.6;
+    F.x = b.x * lerp(1, ca, 0.95) + rel; F.y = b.y + (mv < 1 && ad > 0.01 ? Math.sin(Math.PI * (o.smoothGait ? mv ** 0.72 : mv)) * lift * lf * K : 0) + Math.abs(rel / wm || 0) * wm * (1 - wm) * 1.6;
     rig.footRel[side] = rel;
     // heel-toe: toe pushes off as the foot lifts, toe comes up before the heel strikes (only while swinging)
     if (mv < 1 && ad > 0.01) rig.footRoll[side] = dir * (-24 * Math.sin(Math.PI * clamp(mv / 0.4)) * (mv < 0.4 ? 1 : 0) + 18 * Math.sin(Math.PI * clamp((mv - 0.5) / 0.5) * 0.5) * (mv > 0.5 ? 1 : 0) * (1 - smooth(clamp((mv - 0.92) / 0.08)))) * ramp;
   }
   // o.smoothGait: the hips ride a smooth wave (sin²) instead of |sin|, which has a sharp corner at every footfall
   const pass = o.smoothGait ? Math.sin(Math.PI * p) ** 2 : Math.abs(Math.sin(Math.PI * p)), contact = (1 - pass) ** 3;
-  const hip = pose.local[bi.hip]; hip.y += (pass * 2.2 - contact * 2.5) * K * ramp;
+  const hip = pose.local[bi.hip];
+  if (o.smoothGait) {
+    // hip height from the leg geometry, so the knees bend like a real walk: at each footfall the hips sit just low
+    // enough for the front leg to land almost straight (longer strides = lower hips), and they rise as the body
+    // passes over the standing leg, which keeps a slight bend. The swinging leg does the big knee bend.
+    const half = Math.min(L * K / 2, rig.legLen * 0.6), wm = o.walkMix ?? 1;
+    const yContact = Math.sqrt((rig.legLen * 0.992) ** 2 - half ** 2) - rig.legRest, yPass = -0.004 * rig.legLen;
+    hip.y += lerp(yContact, yPass, pass) * ramp * wm;
+  } else hip.y += (pass * 2.2 - contact * 2.5) * K * ramp;
   pose.local[bi.chest].rotation += Math.sin(Math.PI * p) * 1.8 * ca;
   rig.contact = contact * ramp;
 }
