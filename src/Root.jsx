@@ -4,12 +4,14 @@ import { Day1Test, DAY1_FRAMES } from './Day1Test.jsx';
 import { RigTest } from './RigTest.jsx';
 import { Opening, OPENING_FRAMES } from './Opening.jsx';
 import { MarketTest, MARKET_FRAMES } from './MarketTest.jsx';
+import { SceneComps } from './Scenes.jsx';
 export const FPS = 30;
 export const Root = () => (
   <>
     <Composition id="Day1Test" component={Day1Test} durationInFrames={DAY1_FRAMES} fps={FPS} width={1920} height={1080} />
     <Composition id="Opening" component={Opening} durationInFrames={OPENING_FRAMES} fps={FPS} width={1920} height={1080} />
     <Composition id="MarketTest" component={MarketTest} durationInFrames={MARKET_FRAMES} fps={FPS} width={1920} height={1080} />
+    <SceneComps />
     <Composition id="RigTest" component={RigTest} durationInFrames={5} fps={FPS} width={1920} height={1080} />
   </>
 );
