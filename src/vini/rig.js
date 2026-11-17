@@ -24,6 +24,9 @@ export async function loadRig(url, file) {
   const rig = { sk: skeleton, pose: new Pose(skeleton), imgs, bi, si, has, anim: Object.fromEntries(skeleton.animations.map((a) => [a.name, a])) };
   // setup-pose foot angles (to keep the feet level whatever the IK does to the shins)
   rig.pose.reset(skeleton); rig.pose.updateWorld(skeleton);
+  // leg measurements in the setup pose: full leg length, and hip-joint-to-ankle distance when standing
+  { const W = rig.pose.world, th = W[bi.thigh_l], sh = W[bi.shin_l], ft = W[bi.foot_l], d = (a, b) => Math.hypot(a.tx - b.tx, a.ty - b.ty);
+    rig.legLen = d(th, sh) + d(sh, ft); rig.legRest = d(th, ft); }
   rig.footRest = Object.fromEntries(['l', 'r'].map((s) => [s, worldAngle(rig.pose.world[bi[`foot_${s}`]])]));
   // draw orders: front = as rigged; turned = far arm and far leg behind the body, near ones in front
   const S = skeleton.slots.map((s) => s.name), FRONT = S.map((_, i) => i);
@@ -39,7 +42,7 @@ const worldAngle = (m) => Math.atan2(m.b, m.a) * DEG;
 // The optional third number is how far forward (toward his front) the hand sits; it shows when he turns.
 export const ARMS = { down: [10, 88, 3], relaxed: [6, 88, 2], hips: [6, 66, -6], out: [80, 36, 26], wave: [40, -74, 8], up: [16, -94, 6], hold: [-6, 64, 30], chest: [-16, 36, 24], point: [90, -2, 84], shrug: [52, 6, 8], face: [-6, -32, 28], cold: [-22, 40, 20], reach: [52, -84, 40], carry: [2, 70, 28], torch: [70, 30, 60] };
 const K = 4, SHX = 23, HEADR = 35.62 * K, GAP = 35.62 * 0.34 * K;
-const FACES = {
+export const FACES = {
   neutral: { mouth: 'mouth', brow: [0, 0] }, worried: { mouth: 'mouth_wobble', brow: [12, 8] }, scared: { mouth: 'mouth_wobble', brow: [18, 14] },
   terror: { mouth: 'mouth_scream', brow: [22, 18] }, shock: { mouth: 'mouth_o', brow: [0, 22] }, happy: { mouth: 'mouth_smile', brow: [0, 6] },
   determined: { mouth: 'mouth', brow: [-16, -6] }, exhausted: { mouth: 'mouth_o', brow: [6, -4] }, sleep: { mouth: 'mouth', brow: [0, -4], closed: 1 }, relief: { mouth: 'mouth_smile', brow: [10, 6], closed: 1 },
@@ -66,7 +69,7 @@ export const viewOf = (turn) => (Math.abs(turn) > 0.8 ? 'side' : Math.abs(turn) 
 //       shake, headTilt, lean, crouch (v1 units the hips drop, knees bend), hipX, swing, seed,
 //       turn (-1..1), walkDist/stride/lift (planted-feet travel), breath (0..1 extra chest rise),
 //       hairLag / packLag (degrees of follow-through, from secondary()), squash (0..1 contact squash),
-//       armSwing (0..1 arm swing that follows the steps when walking)
+//       armSwing (0..1 arm swing that follows the steps when walking), smoothGait (true = no corner in the hip bob)
 // Internal mirroring for left turns happens in drawVini; poseVini always sees turn >= 0.
 export function poseVini(rig, o) {
   const { sk, pose, bi, si } = rig; pose.reset(sk);
@@ -101,7 +104,7 @@ export function poseVini(rig, o) {
   if (sq) { const c = pose.local[bi.chest]; c.scale_x *= 1 - 0.035 * sq; c.scale_y *= 1 + 0.025 * sq; }
   // secondary motion: hair and backpack lag behind the body (computed from motion history by the scene)
   // ---- face
-  const F = FACES[o.expr || 'neutral'] || FACES.neutral;
+  const F = (o.expr && typeof o.expr === 'object' ? o.expr : FACES[o.expr || 'neutral']) || FACES.neutral;   // a name, or a blended face from exprTrack()
   const blink = o.blink !== false && blinking(t + (o.seed || 0) * 1.37);
   for (const m of MOUTHS) if (si[m] !== undefined) pose.attachment[si[m]] = m === F.mouth ? m : null;
   const closed = F.closed || blink, hideFar = turn > 0.8;
@@ -118,6 +121,10 @@ export function poseVini(rig, o) {
     pose.local[bi[`eye_${s}`]].y -= shiftX(x0);
   }
   pose.local[bi.mouth].y -= fc * 1.08;
+  // eyes widen (shock) or narrow, the mouth stretches: F.eyeScale / F.mouthScale from exprTrack(), or o.eyeScale / o.mouthScale
+  const es = F.eyeScale ?? o.eyeScale, ms = F.mouthScale ?? o.mouthScale;
+  if (es && es !== 1) for (const n of ['eye_l', 'eye_r']) { pose.local[bi[n]].scale_x *= es; pose.local[bi[n]].scale_y *= es; }
+  if (ms && ms !== 1) { pose.local[bi.mouth].scale_x *= ms; pose.local[bi.mouth].scale_y *= ms; }
   if (o.look) for (const n of ['eye_l', 'eye_r']) { const b = bi[n]; pose.local[b].x += o.look[1] * -10; pose.local[b].y -= o.look[0] * 12 * lerp(1, 0.5, sa); }   // + = screen-right
   // ---- view art
   // ---- view + outfit art: '<part><outfit><view>' falling back to '<part><outfit>', '<part><view>', '<part>'
@@ -174,13 +181,22 @@ function plantedFeet(rig, o, ca) {
     // walkMix < 1 brings the feet back together after the last step (the moving foot lifts in a small arc)
     const wm = o.walkMix ?? 1, rel = dir * (worldX - ad) * K * ramp * wm;
     const lf = side === 'r' ? 1 - (o.drag ?? 0) * 0.75 : 1;          // o.drag: the right foot barely lifts (a zombie's dragged leg)
-    F.x = b.x * lerp(1, ca, 0.95) + rel; F.y = b.y + (mv < 1 && ad > 0.01 ? Math.sin(Math.PI * mv) * lift * lf * K : 0) + Math.abs(rel / wm || 0) * wm * (1 - wm) * 1.6;
+    F.x = b.x * lerp(1, ca, 0.95) + rel; F.y = b.y + (mv < 1 && ad > 0.01 ? Math.sin(Math.PI * (o.smoothGait ? mv ** 0.72 : mv)) * lift * lf * K : 0) + Math.abs(rel / wm || 0) * wm * (1 - wm) * 1.6;
     rig.footRel[side] = rel;
     // heel-toe: toe pushes off as the foot lifts, toe comes up before the heel strikes (only while swinging)
     if (mv < 1 && ad > 0.01) rig.footRoll[side] = dir * (-24 * Math.sin(Math.PI * clamp(mv / 0.4)) * (mv < 0.4 ? 1 : 0) + 18 * Math.sin(Math.PI * clamp((mv - 0.5) / 0.5) * 0.5) * (mv > 0.5 ? 1 : 0) * (1 - smooth(clamp((mv - 0.92) / 0.08)))) * ramp;
   }
-  const pass = Math.abs(Math.sin(Math.PI * p)), contact = (1 - pass) ** 3;
-  const hip = pose.local[bi.hip]; hip.y += (pass * 2.2 - contact * 2.5) * K * ramp;
+  // o.smoothGait: the hips ride a smooth wave (sin²) instead of |sin|, which has a sharp corner at every footfall
+  const pass = o.smoothGait ? Math.sin(Math.PI * p) ** 2 : Math.abs(Math.sin(Math.PI * p)), contact = (1 - pass) ** 3;
+  const hip = pose.local[bi.hip];
+  if (o.smoothGait) {
+    // hip height from the leg geometry, so the knees bend like a real walk: at each footfall the hips sit just low
+    // enough for the front leg to land almost straight (longer strides = lower hips), and they rise as the body
+    // passes over the standing leg, which keeps a slight bend. The swinging leg does the big knee bend.
+    const half = Math.min(L * K / 2, rig.legLen * 0.6), wm = o.walkMix ?? 1;
+    const yContact = Math.sqrt((rig.legLen * 0.992) ** 2 - half ** 2) - rig.legRest, yPass = -0.004 * rig.legLen;
+    hip.y += lerp(yContact, yPass, pass) * ramp * wm;
+  } else hip.y += (pass * 2.2 - contact * 2.5) * K * ramp;
   pose.local[bi.chest].rotation += Math.sin(Math.PI * p) * 1.8 * ca;
   rig.contact = contact * ramp;
 }

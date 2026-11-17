@@ -3,6 +3,7 @@
 // notebook page. Vini is the Rigby2D rig (src/vini/rig.js). Every function here is a pure function of time.
 import { W, H, RED, INK, clamp, lerp, ease, alpha, radGrad, sm, so, pop, settle, armTrack, pick, track, camBegin, camEnd, punches, pageTurn, toScreen, camShake, note, arrowTo, bigText, fade, vignette, dayCounter, notebook, inkPath, tick, cross, writeOn, pen } from '../kit/kit.js';
 import { drawVini, follow } from '../vini/rig.js';
+import { armSpring, overlap, withAlive } from '../kit/motion.js';
 
 // ---------- secondary motion + breathing (deterministic: driven by motion history, see follow() in rig.js) ----------
 // drive(t) = a screen-x the body moves with; the hair (light, quick) and backpack (heavy, slow) trail behind it.
@@ -66,13 +67,13 @@ function d1(g, gt, A) {
   const lag = lags(drive1, gt), land = bump(gt, UP1 - 0.08, UP1 + 0.22);
   const crouch = Math.sin(Math.PI * clamp(u * 1.1)) * 9 * (1 - sm(gt, UP1 - 0.15, UP1 + 0.25)) + curl * 4 + Math.max(0, settle(gt, UP1 + 0.05, 5, 12, 7));
   const reach = sm(gt, 33.1, 33.45) * (1 - sm(gt, 33.45, 33.8));
-  const armR = holding ? armTrack(gt, [[33.4, [[24, 40], [36, 84]]], [33.45, [[14, 40], PHONE_HAND]]], 0.35) : armTrack(gt, [[0, 'down'], [32.6, 'out'], [33.05, [[24, 40], [36, 84]]]], 0.35);
-  const armL = armTrack(gt, [[0, 'down'], [32.6, 'out'], [33.05, 'down'], [34.6, 'chest']], 0.35);
+  const armR = holding ? armSpring(gt, [[33.4, [[24, 40], [36, 84]]], [33.45, [[14, 40], PHONE_HAND]]], { windUp: 0, feel: 'soft' }) : armSpring(gt, [[0, 'down'], [32.6, 'out'], [33.05, [[24, 40], [36, 84]]]], { delay: 0.05 });
+  const armL = armSpring(gt, [[0, 'down'], [32.6, 'out'], [33.05, 'down'], [34.6, 'chest']]);
   const turn = 0.62 * Math.sin(Math.PI * clamp((gt - UP0 + 0.1) / (UP1 - UP0 + 0.35)));
   g.save(); g.translate(ox, oy); g.rotate(rot);
-  drawVini(g, A.vini, { x: 0, y: 0, s: VS, t: gt, shadow: standing, turn, expr: pick(gt, [[0, 'sleep'], [30.7, 'shock'], [32.8, 'worried'], [34.6, 'scared']]), look: gt < 32.3 ? [0, -1] : holding ? [0.25, 0.7] : [0.5, 0.7],
+  drawVini(g, A.vini, withAlive({ x: 0, y: 0, s: VS, t: gt, shadow: standing, turn, expr: pick(gt, [[0, 'sleep'], [30.7, 'shock'], [32.8, 'worried'], [34.6, 'scared']]), look: gt < 32.3 ? [0, -1] : holding ? [0.25, 0.7] : [0.5, 0.7],
     arms: [armL, armR], lean: -reach * 0.12 * 57, crouch: crouch + stir * 2, headTilt: stir * 5 - jolt * 7, shake: gt > 34.6 ? 0.5 : 0, breath, squash: land * 0.8,
-    hairLag: lag.hairLag + jolt * 6, packLag: lag.packLag, props: { right: holding ? inHand(gt, gt > 34.55 ? 'alert' : 'buzz') : null } });
+    hairLag: lag.hairLag + jolt * 6, packLag: lag.packLag, props: { right: holding ? inHand(gt, gt > 34.55 ? 'alert' : 'buzz') : null } }, gt, { energy: sm(gt, UP1 + 0.2, UP1 + 0.9) }));
   g.restore();
   if (gt < 30.6) note(g, 'z z z', 470, 560 - Math.sin(gt * 2) * 8, { size: 44, color: '#3a3a3a', glow: false, k: 1 - sm(gt, 30.3, 30.6) });
   camEnd(g);
@@ -87,6 +88,8 @@ function d1(g, gt, A) {
 // -> a curious lean toward it -> he backs off a step (38.95) -> the shouting stops: he gasps and freezes (40.0)
 // -> holds his breath, then slowly turns back to us (41.0) so d3 can start from the front.
 const SHOUT = 36.85, BACK0 = 38.95, BACK1 = 39.5, BACKD = 20, SILENCE = 40.0;
+const gasp2 = (t) => so(t, SILENCE, SILENCE + 0.18) * (1 - sm(t, 41.2, 41.9));
+const lean2 = (t) => 2.6 * bump(t, 37.7, 38.95) - 5 * startle(t - SHOUT) - 3 * bump(t, BACK0 - 0.05, BACK1 + 0.15) + 1.2 * gasp2(t);
 const back2 = (t) => BACKD * ease.inOut(clamp((t - BACK0) / (BACK1 - BACK0)));
 const turn2 = (t) => track(t, [[37.02, 0], [37.55, -0.6], [40.95, -0.6], [41.6, 0]]);
 const drive2 = (t) => 790 + back2(t) * VS + startle(t - SHOUT) * 34 + turn2(t) * 30;
@@ -94,16 +97,16 @@ const X_D3 = 790 + BACKD * VS;
 function d2(g, gt, A) { const t = gt - 36.5, dur = 5.3;
   camBegin(g, A.bg.flat, punches(gt, { z: lerp(1.42, 1.62, sm(t, 0, dur)), x: lerp(760, 610, sm(t, 0, 1.6)), y: lerp(660, 650, sm(t, 0, dur)) }, [[SILENCE + 0.03, 0.72, { z: 2.5, x: 835, y: 640 }, 0.5]]));
   const fl = startle(gt - SHOUT), freeze = gt > SILENCE, tt = freeze ? SILENCE + (gt - SILENCE) * 0.12 : gt, back = back2(gt), stepping = gt > BACK0 - 0.02;
-  const gasp = so(gt, SILENCE, SILENCE + 0.18) * (1 - sm(gt, 41.2, 41.9));
+  const gasp = gasp2(gt);
   const breath = freeze ? lerp(breathe(SILENCE, 1.2, 0.7), 1, gasp) : breathe(gt, 1.2, 0.7);
-  const lean = 2.6 * bump(gt, 37.7, 38.95) - 5 * fl - 3 * bump(gt, BACK0 - 0.05, BACK1 + 0.15) + 1.2 * gasp;
+  const lean = lean2(gt);
   const look = gt < 36.95 ? [0.25, 0.7] : gt < 40.95 ? [-0.7, gt < 37.6 ? -0.1 : 0.05] : [lerp(-0.7, 0, sm(gt, 40.95, 41.5)), 0];
-  drawVini(g, A.vini, { x: 790 + back * VS, y: 988, s: VS, t: tt, turn: turn2(gt), look, lean, headTilt: -5 * fl, hipX: 3 * fl, crouch: fl * 2.2 + bump(gt, BACK0, BACK1) * 1.5,
+  drawVini(g, A.vini, withAlive({ x: 790 + back * VS, y: 988, s: VS, t: tt, turn: turn2(gt), look, lean, headTilt: -5 * fl + overlap(lean2, gt, 0.09, 0.7), hipX: 3 * fl, crouch: fl * 2.2 + bump(gt, BACK0, BACK1) * 1.5,
     expr: pick(gt, [[0, 'scared'], [SHOUT, 'shock'], [37.4, 'worried'], [BACK0, 'scared'], [SILENCE, 'shock'], [40.7, 'scared']]),
     walkDist: stepping ? back : null, stride: BACKD, lift: 9, walkMix: 1 - sm(gt, BACK1 + 0.05, BACK1 + 0.4), breath, shake: freeze ? 0.15 * (1 - gasp * 0.5) : fl * 0.6, ...lags(drive2, gt),
-    arms: [armTrack(gt, [[0, 'chest'], [SHOUT, 'face'], [37.35, 'chest'], [38.1, 'down']], 0.16),
-      armTrack(gt, [[0, [[14, 40], PHONE_HAND]], [SHOUT, [[16, 34], [-10, 22, 34]]], [37.3, [[14, 40], PHONE_HAND]], [37.85, [[10, 44], [-2, 58, 26]]]], 0.2)],
-    props: { right: inHand(gt, 'alert') } });
+    arms: [armSpring(gt, [[0, 'chest'], [SHOUT, 'face'], [37.35, 'chest'], [38.1, 'down']], { feel: 'snappy', windUp: 0.04 }),
+      armSpring(gt, [[0, [[14, 40], PHONE_HAND]], [SHOUT, [[16, 34], [-10, 22, 34]]], [37.3, [[14, 40], PHONE_HAND]], [37.85, [[10, 44], [-2, 58, 26]]]], { delay: 0.04, arc: 0.1 })],
+    props: { right: inHand(gt, 'alert') } }, tt, { energy: freeze ? 0.4 : 1 }));
   camEnd(g);
   if (gt > 36.8 && gt < 39.9) note(g, '!?', 230 + Math.sin(gt * 30) * 3, 330, { size: 120, k: pop(gt, 36.85) * (1 - sm(gt, 39.6, 39.9)) });
   if (gt > 40.0) note(g, '…silence', 330, 330, { size: 66, color: '#2a2622', k: pop(gt, 40.05) });
@@ -122,9 +125,9 @@ function doorScene(g, gt, A, cam = (v) => v) {
   const d = walkD(gt), x = X_D3 + d * VS, c = camBegin(g, A.bg.flat, cam({ z: 1.22, x: clamp(x + 220, 900, 1300), y: 640 }, x));
   const walking = gt > WALK0 - 0.05, turn = turn3(gt);
   const speedK = clamp((walkD(gt + 0.05) - walkD(gt - 0.05)) / (0.1 * SPEED));   // 0 standing .. 1 full pace
-  drawVini(g, A.vini, { x, y: 988, s: VS, t: gt, turn, walkDist: walking ? d : null, stride: SPEED * STEP, lift: 14, expr: pick(gt, [[0, 'worried'], [42.6, 'determined']]), look: [0.5, 0],
-    lean: -4.5 * speedK, ...lags(drive3, gt), breath: breathe(gt, 1.3, 0.5), arms: [armTrack(gt, [[0, 'down'], [41.9, 'relaxed'], [45.55, 'point']]), armTrack(gt, [[0, [[14, 40], PHONE_HAND]], [42.0, 'relaxed']])],
-    props: { right: gt < 42.15 ? inHand(gt, 'alert') : null } });
+  drawVini(g, A.vini, withAlive({ x, y: 988, s: VS, t: gt, turn, walkDist: walking ? d : null, stride: SPEED * STEP, lift: 14, expr: pick(gt, [[0, 'worried'], [42.6, 'determined']]), look: [0.5, 0],
+    lean: -4.5 * speedK, ...lags(drive3, gt), breath: breathe(gt, 1.3, 0.5), arms: [armSpring(gt, [[0, 'down'], [41.9, 'relaxed'], [45.55, 'point']]), armSpring(gt, [[0, [[14, 40], PHONE_HAND]], [42.0, 'relaxed']], { feel: 'soft' })],
+    props: { right: gt < 42.15 ? inHand(gt, 'alert') : null } }, gt, { energy: 1 - 0.6 * speedK }));
   camEnd(g); return c; }
 const camD3 = (gt) => (v, x) => punches(gt, v, [[42.6, 0.36, { z: 2.3, x: x + 70, y: 645 }, 0.42]]);
 function d3(g, gt, A) { const c = doorScene(g, gt, A, camD3(gt));

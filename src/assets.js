@@ -7,10 +7,10 @@ let P = null;
 export function loadAssets() {
   if (!P) P = (async () => {
     await Promise.all([font('Permanent Marker', 'permanent-marker-latin-400-normal.woff2'), font('Patrick Hand', 'patrick-hand-latin-400-normal.woff2')]);
-    const [vini, zombie, flat, street, supermarket, barricade, stairwell, rooftop] = await Promise.all([
+    const [vini, zombie, flat, street, supermarket, barricade, stairwell, rooftop, nightcity, checkpoint, tent] = await Promise.all([
       loadVini((p) => staticFile(`vini/${p}`)), loadRig((p) => staticFile(`zombie/${p}`), 'zombie.json'), img('bg/bg01_flat_v2.png'), img('bg/bg03_street.png'), img('bg/bg02_supermarket_v2.png'),
-      img('bg/bg04_barricade.png'), img('bg/bg05_stairwell.png'), img('bg/bg06_rooftop.png')]);
-    return { vini, zombie, bg: { flat, street, supermarket, barricade, stairwell, rooftop } };
+      img('bg/bg04_barricade.png'), img('bg/bg05_stairwell.png'), img('bg/bg06_rooftop.png'), img('bg/bg07_nightcity.png'), img('bg/bg08_checkpoint.png'), img('bg/bg09_tent.png')]);
+    return { vini, zombie, bg: { flat, street, supermarket, barricade, stairwell, rooftop, nightcity, checkpoint, tent } };
   })();
   return P;
 }
