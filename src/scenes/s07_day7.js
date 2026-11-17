@@ -133,7 +133,7 @@ const SUBS = [{ t0: 6.25, hs: [6.5, 7.15, 7.8], d: 0.55, end: 1725 }, { t0: 8.8,
 SUBS.forEach((s) => { s.slam = s.hs[s.hs.length - 1] + s.d; s.start = s.end - s.hs.length * PU * VP; });
 const heaveN = (t, S) => S.hs.reduce((a, h) => a + sm(t, h, h + S.d), 0), heaveB = (t, S) => S.hs.reduce((a, h) => a + bump(t, h, h + S.d), 0);
 const faceX = (t, S) => S.start + heaveN(t, S) * PU * VP;                                   // left face of the object being pushed
-const BACK0 = 13.3, BACK1 = 13.95, BACKD = 34, REAL = 15.75, MIST = A0 + 15.75, OUT = A0 + 17.6;
+const BACK0 = 13.3, BACK1 = 13.95, BACKD = 58, REAL = 15.75, MIST = A0 + 15.75, OUT = A0 + 17.6;
 const PUSH_A = [0, 10, 100], PUSH_B = [0, -22, 96];
 function push(g, t, A) {
   const sub = t < SUBS[1].t0 ? 0 : t < SUBS[2].t0 ? 1 : 2, S = SUBS[sub], acting = sub === 2;
@@ -141,12 +141,12 @@ function push(g, t, A) {
   const pushK = (tt) => 1 - sm(tt, S.slam + 0.04, S.slam + 0.4), low = S.low || 0;
   const leanAt = (tt) => pushK(tt) * (-19 - 13 * low - 8 * heaveB(tt, S)) + 9 * startle(tt - S.slam) * pushK(tt)
     + (acting ? trackSpring(tt, [[0, 0], [11.2, 4], [13.2, 0], [14.35, -6], [REAL, 7], [18.1, 2]], { feel: 'heavy', windUp: 0.05 }) : 0);
-  const wide = sub === 0 ? { z: lerp(2.2, 2.28, sm(t, 6.25, 8.8)), x: 1700, y: lerp(790, 782, sm(t, 6.25, 8.8)) } : sub === 1 ? { z: lerp(2.34, 2.38, sm(t, 8.8, 9.95)), x: 1700, y: 800 }
-    : { z: lerp(2.26, 2.2, sm(t, 9.95, 13.5)) + 0.16 * sm(t, 17.8, 20.4), x: 1700, y: lerp(792, 780, sm(t, 9.95, 13.5)) + 12 * sm(t, 17.8, 20.4) };
+  const wide = sub === 0 ? { z: lerp(2.2, 2.28, sm(t, 6.25, 8.8)), x: 1700, y: lerp(790, 782, sm(t, 6.25, 8.8)) } : sub === 1 ? { z: lerp(2.08, 2.12, sm(t, 8.8, 9.95)), x: 1700, y: 800 }
+    : { z: lerp(2.04, 1.98, sm(t, 9.95, 13.5)) + 0.14 * sm(t, 17.8, 20.4), x: 1700, y: lerp(792, 780, sm(t, 9.95, 13.5)) + 12 * sm(t, 17.8, 20.4) };
   const shake = camShake(t, 6, S.slam, 0.35), c = camBegin(g, A.bg.flat, punches(t, wide, acting ? [[REAL + 0.02, 1.25, { z: 3.0, x: vx + 70, y: 650 }, 0.5]] : []), shake);
   dim(g);
   // spare boards leaning in the corner (they also hide the end of the painted sofa: the sofa in this shot is the one he pushes)
-  [[1052, 440, -0.05], [1082, 420, 0.03], [1112, 450, -0.02], [1140, 410, 0.05], [1100, 400, 0.11]].forEach(([px, ph, pr], i) => plank(g, px, 890 - ph / 2 + (i === 4 ? 8 : 0), ph, 38, Math.PI / 2 + pr, i % 2 === 0));
+  [[930, 430, 0.04], [968, 455, -0.03], [1010, 415, 0.06], [1052, 440, -0.05], [1082, 420, 0.03], [1112, 450, -0.02], [1140, 410, 0.05], [1100, 400, 0.11]].forEach(([px, ph, pr], i) => plank(g, px, 890 - ph / 2 + (i === 7 ? 8 : 0), ph, 38, Math.PI / 2 + pr, i % 2 === 0));
   // the stack: each thing rocks as it lands; the sofa rides up the bookcase
   const rock = (i) => settle(t, SUBS[i].slam, 0.022, 17, 6), fx = (i) => (i < sub ? SUBS[i].end : faceX(t, SUBS[i]));
   bookcase(g, fx(0) + 95, 960, 190, 400, rock(0) - (sub > 0 ? settle(t, SUBS[1].slam, 0.012, 17, 6) : 0));
@@ -182,7 +182,7 @@ function push(g, t, A) {
   if (acting) {
     const fk = pop(t, A0 + 11.0) * (1 - sm(t, OUT - 0.1, OUT + 0.2)); if (fk > 0) { note(g, 'FORTRESS', 1150, 150, { size: 100, k: fk, rot: -0.04 }); tick(g, 1440, 150, 52, so(t, A0 + 11.4, A0 + 11.75) * (fk >= 0.99 ? 1 : 0));
       if (t > MIST) { inkPath(g, [[930, 162], [1160, 150], [1480, 158]], so(t, MIST, MIST + 0.25), 9, RED); } }
-    note(g, 'MISTAKE #2', 1120, 330, { size: 118, k: pop(t, MIST + 0.1) * (1 - sm(t, 19.9, 20.3)), rot: -0.07 });
+    note(g, 'MISTAKE #2', 1340, 320, { size: 118, k: pop(t, MIST + 0.1) * (1 - sm(t, 19.9, 20.3)), rot: -0.07 });
     if (t > OUT) { const [dx, dy] = toScreen(c, 1790, 610), [hx, hy] = toScreen(c, vx + 40, 640); const ak = so(t, OUT + 0.6, OUT + 1.0);
       note(g, '…the only door', 1330, 150, { size: 96, k: pop(t, OUT + 0.75), rot: 0.03 }); arrowTo(g, 1560, 205, dx - 20, dy - 40, ak, RED, 40); }
   }
@@ -258,9 +258,9 @@ function routeShot(g, t, A) {
     lean: leanAt(t), headTilt: overlap(leanAt, t, 0.09, 0.8) + 7 * sm(t, UP, UP + 0.4), walkDist: -d, stride: 51.5, lift: 12, smoothGait: true, walkSquash: 0.25, walkMix: 1 - sm(t, 34.3, 34.7), breath: breathe(t, 1.3, 0.7), ...lags((tt) => -seg(tt, [33.05, 34.25], 103, 0.3) * VS, t),
     arms: [armSpring(t, [[0, 'relaxed'], [A0 + 33.95, 'point'], [UP, 'reach'], [A0 + 36.75, 'hips']], { feel: 'snappy' }), armSpring(t, [[0, 'relaxed'], [A0 + 36.8, 'hips']], { delay: 0.05 })] }, t, { energy: 1 - 0.6 * wkK }));
   camEnd(g);
-  const L = (str, wx, wy, at, o = {}) => { const [sx, sy] = toScreen(c, wx, wy); note(g, str, sx, sy, { size: 92, k: pop(t, at), ...o }); };
+  const L = (str, wx, wy, at, o = {}) => { const [sx, sy] = toScreen(c, wx, wy); note(g, str, clamp(sx, 190, W - 190), clamp(sy, 95, H - 95), { size: 92, k: pop(t, at), ...o }); };
   L('FLAT', 1560, 60, A0 + 32.75, { rot: 0.03 }); L('STAIRS', 700, 330, A0 + 34.55, { rot: -0.04 }); L('ROOF', 520, 90, A0 + 36.45, { rot: -0.03 });
-  const [tx, ty] = toScreen(c, 690, 86); tick(g, tx, ty, 38, so(t, A0 + 36.75, A0 + 37.0));
+  const [tx0, ty0] = toScreen(c, 520, 90), tx = clamp(tx0, 190, W - 190) + 170, ty = clamp(ty0, 95, H - 95) - 4; tick(g, tx, ty, 38, so(t, A0 + 36.75, A0 + 37.0));
   day(g, t); vignette(g, 0.36);
 }
 
@@ -331,7 +331,7 @@ function freezeShot(g, t, A) {
   camEnd(g);
   note(g, 'floor 3', W * 0.8, H * 0.14, { size: 70, k: pop(t, 48.55) * (1 - sm(t, FZ - 0.2, FZ)), color: '#d8d2c0', glow: false });
   const [ax, ay] = toScreen(c, 600, 820), [bx, by] = toScreen(c, 800, 800);
-  const k1 = pop(t, SQ1, 0.2), k2 = pop(t, SQ2, 0.2); if (k1 > 0) note(g, 'squelch', ax + Math.sin(t * 9) * 3, ay, { size: 78, k: k1 * (1 - 0.45 * sm(t, SQ1 + 1.2, SQ1 + 1.8)), rot: -0.1, color: '#7d2a22' });
+  const k1 = pop(t, SQ1, 0.2), k2 = pop(t, SQ2, 0.2); if (k1 > 0) note(g, 'squelch', ax + Math.sin(t * 9) * 3, ay, { size: 78, k: k1 * (1 - 0.45 * sm(t, SQ1 + 1.2, SQ1 + 1.8)) * (1 - sm(t, SQ2 - 0.2, SQ2)), rot: -0.1, color: '#7d2a22' });
   if (k2 > 0) bigText(g, 'SQUELCH', bx + Math.sin(t * 34) * 5 * (1 - sm(t, SQ2, SQ2 + 0.6)), by - 30, { size: 150, k: k2, color: '#b5332a', rot: -0.06 });
   if (t > FZ + 0.25 && t < SQ1) { const [hx, hy] = toScreen(c, x - 40, 300); note(g, '…', hx - 150, hy + 140, { size: 110, k: pop(t, FZ + 0.3) * (1 - sm(t, SQ1 - 0.3, SQ1)), color: '#d8d2c0', glow: false }); }
   day(g, t); vignette(g, 0.4 + 0.14 * sm(t, FZ, SQ2)); fade(g, 1 - sm(t, 48.3, 48.5));
@@ -370,7 +370,7 @@ function cut1(g, t, A) {
   const bk = so(t, B0 + 8.05, B0 + 8.5); if (bk > 0) { g.strokeStyle = RED; g.lineWidth = 7; g.lineCap = 'round'; g.beginPath(); g.moveTo(1600, 340); g.lineTo(1600, lerp(340, 980, bk)); g.stroke(); for (const yy of [340, 660, 980]) if (lerp(340, 980, bk) >= yy) { g.beginPath(); g.moveTo(1580, yy); g.lineTo(1620, yy); g.stroke(); } }
   g.restore();
   note(g, 'already inside', W * 0.24, H * 0.2, { size: 84, k: pop(t, B0 + 7.3) * (1 - sm(t, 57.8, 58.1)), rot: -0.05 });
-  const [lx, ly] = toScreen(c, 1640, 660); note(g, '2 floors down', lx + 150 / 1, ly, { size: 70, k: pop(t, B0 + 8.3) * (1 - sm(t, 58.0, 58.4)), rot: 0.03 });
+  const [lx, ly] = toScreen(c, 1640, 660); { const k2 = pop(t, B0 + 8.3) * (1 - sm(t, 58.0, 58.4)), nx = Math.min(lx + 150, W - 150); note(g, '2 floors', nx, ly - 34, { size: 68, k: k2, rot: 0.03 }); note(g, 'down', nx, ly + 34, { size: 68, k: k2, rot: 0.03 }); }
   const [zx, zy] = toScreen(c, ZX, FY[2] - 170); note(g, '?', zx + 40, zy - 40 + Math.sin(t * 3) * 6, { size: 130, k: pop(t, B0 + 9.9), rot: 0.12 });
   note(g, 'stairs: how?', W * 0.74, H * 0.34, { size: 76, k: pop(t, B0 + 10.5), rot: 0.04 });
   ATT_A.forEach(([t0, d]) => { const tb = t0 + d * 0.86, k = pop(t, tb, 0.14) * (1 - sm(t, tb + 0.35, tb + 0.6)); const [qx, qy] = toScreen(c, ZX - 40, FY[2] + 20); if (k > 0) note(g, 'squelch', qx - 150, qy - 20, { size: 60, k, rot: -0.08, color: '#b5332a' }); });
@@ -418,14 +418,18 @@ function sleepShot(g, t, A) {
   const k = sm(t, SLEEP, DUR), wake = t >= CREAK + 0.12;
   const c = camBegin(g, A.bg.barricade, punches(t, { z: lerp(1.5, 1.8, k), x: lerp(1260, 1320, k), y: lerp(760, 790, k) }, [[CREAK + 0.14, 9, { z: 2.7, x: 1335, y: 800 }]]));
   const br = breathe(t, 3.4, 1), jolt = startle(t - CREAK - 0.12);
-  const opts = (open) => withAlive({ x: 1330, y: 1012, s: VS, t, turn: 0.1, expr: open ? { mouth: 'mouth', brow: [0, 16], eyeScale: 1.15 } : 'sleep', blink: false, look: [0.95, 0], crouch: 86 - 1.5 * br - 3 * jolt, lean: 9 - 1.5 * jolt, headTilt: 13 + 1.5 * br - 8 * jolt, breath: br,
-    arms: [[-20, 44, 24], [-22, 36, 26]], shadowA: 0.25, shadow: !open, props: open ? null : { right: (g2, h, info) => tin(g2, h[0] - 6, h[1] + 2, 1.15 * info.s / VS, -0.25) } }, t, { energy: 0 });
-  drawVini(g, A.vini, opts(false));
-  if (wake) { g.save(); g.beginPath(); g.arc(1330 + 16, 1012 - 86 * VS - 190 * VS + 0, 0.1, 0, 7); g.restore(); }
+  const opts = (open) => withAlive({ x: 1330, y: 1012, s: VS, t, turn: 0.1, expr: 'sleep', blink: false, look: [0.95, 0], crouch: 86 - 1.5 * br - 3 * jolt, lean: 9 - 1.5 * jolt, headTilt: 13 + 1.5 * br - 8 * jolt, breath: br,
+    arms: [[-20, 44, 24], [-22, 36, 26]], shadowA: 0.25, props: { right: (g2, h, info) => tin(g2, h[0] - 6, h[1] + 2, 1.15 * info.s / VS, -0.25) } }, t, { energy: 0 });
+  let headAt = null; const cl = opts(false); cl.props = { ...cl.props, left: (g2, h, info) => { headAt = info.head; } };
+  drawVini(g, A.vini, cl);
+  // "Badly.": one eye snaps open at the creak (the open-eyed face, drawn only through a hole over his screen-right eye and brow)
+  if (wake && headAt) { const ok = clamp((t - CREAK - 0.12) / 0.07), ex = headAt[0] + 21.5, ey = headAt[1] - 13.2, pk = 1 + 0.35 * startle(t - CREAK - 0.12);
+    g.save(); g.translate(ex, ey); g.rotate(-0.33); g.fillStyle = '#d7c8bd'; g.beginPath(); g.ellipse(0, 0, 13.5, 6.4, 0, 0, 7); g.fill();
+    g.fillStyle = '#16131a'; g.beginPath(); g.ellipse(1.5, 0.5, 4.9 * pk, 6.4 * pk * ok, 0.33, 0, 7); g.fill(); g.restore(); }
   camEnd(g);
-  nightGrade(g, 1, [[...toScreen(c, 620, 300), 760, '#9fb4e8', 0.26], [...toScreen(c, 1340, 820), 300, '#9fb4e8', 0.1]]);
+  nightGrade(g, 1, [[...toScreen(c, 620, 300), 760, '#9fb4e8', 0.26], [...toScreen(c, 1340, 800), 430 * c.z / 1.5, '#9fb4e8', 0.2]]);
   if (t < CREAK) { const [zx, zy] = toScreen(c, 1420, 640); for (let i = 0; i < 3; i++) { const ph = ((t * 0.45 + i / 3) % 1); note(g, 'z', zx + 30 + ph * 70 + Math.sin(ph * 9) * 8, zy - ph * 130, { size: 40 + ph * 40, k: Math.min(1, ph * 5) * (1 - ph) * sm(t, SLEEP + 0.6, SLEEP + 1.2) * (1 - sm(t, CREAK - 0.15, CREAK)), color: '#d8e0ff', glow: false, rot: 0.1 }); } }
-  const [dx, dy] = toScreen(c, 1720, 520); note(g, 'creak', dx - 40, dy, { size: 58, k: pop(t, CREAK, 0.16), color: '#d8e0ff', glow: false, rot: 0.08 });
+  note(g, 'creak', W * 0.79, H * 0.3 + Math.sin(t * 30) * 3 * (1 - sm(t, CREAK, CREAK + 0.5)), { size: 84, k: pop(t, CREAK, 0.16), color: '#d8e0ff', glow: false, rot: 0.08 });
   note(g, 'DAY 7: survived', W * 0.3, H * 0.2, { size: 72, k: pop(t, B0 + 20.6) * (1 - sm(t, CREAK - 0.2, CREAK)), color: '#d8e0ff', glow: false, rot: -0.03 });
   day(g, t); vignette(g, 0.55); fade(g, 1 - sm(t, SLEEP, SLEEP + 0.3)); fade(g, sm(t, DUR - 0.45, DUR - 0.05));
 }
