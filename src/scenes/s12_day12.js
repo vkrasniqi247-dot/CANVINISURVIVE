@@ -406,13 +406,13 @@ function sStill(g, t, A) { const k = sm(t, STILL, CRASH), dr = sm(t, DROPT, DROP
 // 28.15 – 30.4  five floors: 5 · 4 · 3 · 2 · 1
 // =====================================================================================================
 const FH = 600, FALL_T = 2.2, FALL_G = 2 * (5 * FH + 140) / (FALL_T * FALL_T);
-function sFall(g, t, A) { const u = Math.max(0, t - FALLCUT), wy = -40 + 0.5 * FALL_G * u * u, sy = lerp(250, 1290, ease.in(clamp(u / (FALL_T - 0.02)))), cam = wy - sy, speed = FALL_G * u, WALL = 1090, bx = 1330;
+function sFall(g, t, A) { const u = Math.max(0, t - FALLCUT), wy = -40 + 0.5 * FALL_G * u * u, sy = lerp(430, 1290, ease.in(clamp(u / (FALL_T - 0.02)))), cam = wy - sy, speed = FALL_G * u, WALL = 1090, bx = 1330;
   const Y = (w) => w - cam;
   g.fillStyle = linGrad(g, 0, 0, 0, H, ['#3d3f45', '#6b6d72']); g.fillRect(0, 0, W, H);
   // far rooftops rising slowly on the right
   { const r = rng(9), base = 1500 - cam * 0.16; g.fillStyle = '#34353a'; for (let x = WALL - 40; x < W + 80; x += 86) { const h = 90 + r() * 240; g.fillRect(x, base - h, 80, 2400); if (r() > 0.5) g.fillRect(x + 20, base - h - 34, 16, 36); } g.fillStyle = '#2b2c30'; g.fillRect(WALL, base + 60, W, 3000); }
   // the roof he is standing on
-  if (Y(-20) > -500) { g.save(); g.beginPath(); g.rect(0, 0, W, Y(-52)); g.clip(); drawVini(g, A.vini, { x: 800, y: Y(40), s: 1.5, t: FALLCUT, turn: 0.72, expr: 'terror', look: [0.9, 0.8], arms: [[8, -18, 84], [22, -40, 104]], lean: -12, crouch: 8, shadow: false, blink: false }); g.restore(); }
+  if (Y(-20) > -500) { g.save(); g.beginPath(); g.rect(0, 0, W, Y(-52)); g.clip(); drawVini(g, A.vini, { x: 800, y: Y(-30), s: 1.25, t: FALLCUT, turn: 0.72, expr: 'terror', look: [0.9, 0.8], arms: [[8, -18, 84], [22, -40, 104]], lean: -12, crouch: 8, shadow: false, blink: false }); g.restore(); }
   // the wall
   g.fillStyle = '#6f392c'; g.fillRect(-10, Y(-50), WALL + 10, 6000);
   const blur = clamp(speed / 2600);
@@ -424,7 +424,7 @@ function sFall(g, t, A) { const u = Math.max(0, t - FALLCUT), wy = -40 + 0.5 * F
     for (const wx of [150, 560]) { g.fillStyle = '#d2cab8'; g.beginPath(); g.rect(wx, y0 + 150, 300, 330); g.fill(); g.stroke(); g.fillStyle = n === 3 && wx === 150 ? '#c9a850' : '#1f262b'; g.fillRect(wx + 18, y0 + 168, 264, 294); g.strokeRect(wx + 18, y0 + 168, 264, 294);
       g.beginPath(); g.moveTo(wx + 150, y0 + 168); g.lineTo(wx + 150, y0 + 462); g.moveTo(wx + 18, y0 + 300); g.lineTo(wx + 282, y0 + 300); g.stroke(); g.fillStyle = '#b9b1a0'; g.fillRect(wx - 14, y0 + 480, 328, 20); g.strokeRect(wx - 14, y0 + 480, 328, 20);
       if ((n + wx) % 2 === 0) { g.fillStyle = '#5d4a36'; for (const [a, b] of [[190, 0.05], [330, -0.04]]) { g.save(); g.translate(wx + 150, y0 + a + 40); g.rotate(b); g.fillRect(-170, -22, 340, 44); g.strokeRect(-170, -22, 340, 44); g.restore(); } } }
-    g.save(); g.font = '400 210px "Permanent Marker", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = alpha('#efe6d2', 0.9); g.strokeStyle = alpha(INK, 0.8); g.lineWidth = 10; g.lineJoin = 'round'; g.strokeText(String(n), 985, y0 + 320); g.fillText(String(n), 985, y0 + 320); g.restore(); }
+    g.save(); g.font = '400 170px "Permanent Marker", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = alpha('#efe6d2', 0.9); g.strokeStyle = alpha(INK, 0.8); g.lineWidth = 10; g.lineJoin = 'round'; g.strokeText(String(n), 950, y0 + 320); g.fillText(String(n), 950, y0 + 320); g.restore(); }
   g.fillStyle = '#4c5257'; g.strokeStyle = INK; g.lineWidth = 4; g.fillRect(WALL - 60, Y(-30), 26, 6000); g.strokeRect(WALL - 60, Y(-30), 26, 6000);
   g.fillStyle = '#5c5a56'; g.fillRect(-10, Y(-72), WALL + 40, 44); g.strokeRect(-10, Y(-72), WALL + 40, 44);
   g.strokeStyle = INK; g.lineWidth = 6; g.beginPath(); g.moveTo(WALL, Y(-28)); g.lineTo(WALL, H + 20); g.stroke();
@@ -451,7 +451,7 @@ function sPeek(g, t, A, later) { const t0 = later ? 39.6 : 32.9, k = sm(t, t0, t
   // Vini: only the top of his head and his eyes show
   const VX = 960, S = 3.3, tt = t0 + (t - t0) * 0.5;
   g.save(); g.beginPath(); g.rect(-200, -200, W + 400, TOP + 200); g.clip();
-  drawVini(g, A.vini, withAlive({ x: VX, y: TOP + 894, s: S, t: tt, shadow: false, expr: { mouth: 'mouth', brow: [16, 14], eyeScale: 1.1 }, look: later ? [0.1 * Math.sin(t * 0.9), lerp(1, -0.9, sm(t, 40.05, 40.2)) + 1.9 * sm(t, 40.55, 40.7)] : [0.25 * Math.sin((t - t0) * 1.6), 1], arms: ['down', 'down'], breath: 0.3, hairLag: 0, packLag: 0 }, tt, { energy: 0.1 }));
+  drawVini(g, A.vini, withAlive({ x: VX, y: TOP + 876, s: S, t: tt, shadow: false, expr: { mouth: 'mouth', brow: [16, 14], eyeScale: 1.1 }, look: later ? [0.1 * Math.sin(t * 0.9), lerp(1, -0.9, sm(t, 40.05, 40.2)) + 1.9 * sm(t, 40.55, 40.7)] : [0.25 * Math.sin((t - t0) * 1.6), 1], arms: ['down', 'down'], breath: 0.3, hairLag: 0, packLag: 0 }, tt, { energy: 0.1 }));
   g.restore();
   // fingers hooked over the edge
   g.fillStyle = '#17131a'; g.strokeStyle = INK; g.lineWidth = 4; for (const sd of [-1, 1]) for (let i = 0; i < 4; i++) { g.beginPath(); g.ellipse(VX + sd * (250 + i * 34), TOP + 2 + (i === 0 || i === 3 ? 3 : 0), 15, 22, 0, 0, 7); g.fill(); g.stroke(); }
