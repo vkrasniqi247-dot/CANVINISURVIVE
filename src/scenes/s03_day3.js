@@ -21,7 +21,7 @@ export const SFX = [
   ['street_wind_amb', 23.45], ['sneak_footsteps', 23.5], ['gasp_small', 28.9], ['distant_groan', 31.4],
   ['supermarket_hum_amb', 35.05], ['sneak_footsteps', 35.1], ['pop', 37.6], ['pop', 38.35], ['pop', 39.35], ['flies_buzz', 40.3], ['marker_cross', 40.7], ['marker_cross', 41.0], ['marker_cross', 41.3],
   ['page_flip', 42.35], ['pen_write', 42.5], ['pen_tick', 46.2], ['pen_tick', 46.75], ['pen_tick', 47.3], ['pen_tick', 47.9], ['marker_cross', 49.6], ['pen_tick', 53.6], ['pen_tick', 54.35], ['pen_tick', 54.95], ['radio_static_blip', 55.6], ['pen_tick', 56.1],
-  ['supermarket_hum_amb', 56.9], ['sneak_footsteps', 56.9], ['gasp_small', 58.15], ['sneak_footsteps', 58.9], ['trolley_rattle', 61.0], ['tin_grab', 61.22], ['triumph_sting', 62.4], ['elbow_bump_shelf', 63.94],
+  ['supermarket_hum_amb', 56.9], ['sneak_footsteps', 56.9], ['gasp_small', 58.15], ['sneak_footsteps', 58.9], ['trolley_rattle', 61.0], ['tin_grab', 61.22], ['triumph_sting', 62.4], ['feet_hop_land', 62.5], ['elbow_bump_shelf', 63.94],
   ['CLANG', 64.3], ['tin_bounce', 64.62], ['tin_bounce', 64.84], ['tin_roll', 65.0], ['marker_slam', 65.6], ['whoosh_arrow', 67.5], ['clang_echo', 69.6], ['clang_echo', 70.5], ['clang_echo', 71.4], ['tin_tink_stop', 72.6],
   ['heartbeat', 74.2], ['zombie_groan_far', 76.4], ['dragging_footsteps', 76.8],
   ['street_wind_amb', 80.35], ['tracker_blip', 80.6], ['tracker_fill', 80.9], ['hurried_footsteps', 81.6], ['tins_rattle_in_bag', 82.0], ['pen_write', 85.7], ['pen_write', 87.3],
@@ -282,19 +282,20 @@ function shotE(g, t) { const zk = sm(t, RADIO_T + 0.35, RADIO_T + 0.95);        
 // =====================================================================================================
 const WA = [54.7, 58.1], WB = [58.9, 60.5], FD1 = STRIDE * 5, FD2 = STRIDE * 2;
 const fDist = (t) => seg(t, WA[0], WA[1], FD1) + seg(t, WB[0], WB[1], FD2);
-const FX0 = 1245 - (FD1 + FD2) * MVS, fX = (t) => FX0 + fDist(t) * MVS, fSpeed = (t) => clamp((fDist(t + 0.05) - fDist(t - 0.05)) / (0.1 * PACE));
-const SPOT = 58.15, REACH = 60.85, GRAB = 61.22, RAISE = 62.3, SWING = 63.82, HIT = 63.94, CLANG = 64.3, ROLL = 69.45, STILL = 74.2, COME = 76.0;
-const fTurn = (t) => track(t, [[REACH - 0.45, 0.72], [REACH - 0.1, 1], [GRAB + 0.15, 1], [GRAB + 0.55, 0.55], [RAISE - 0.12, 0.55], [RAISE + 0.24, -0.5]]);
+const HOPD = 72, HOP = 62.2, hopK = (t) => sm(t, HOP, HOP + 0.3), hopY = (t) => 30 * bump(t, HOP, HOP + 0.32);   // a little victory hop back from the trolley as the tin goes up
+const FX0 = 1245 - (FD1 + FD2) * MVS, fX = (t) => FX0 + fDist(t) * MVS - HOPD * hopK(t), FXE = 1245 - HOPD, fSpeed = (t) => clamp((fDist(t + 0.05) - fDist(t - 0.05)) / (0.1 * PACE));
+const SPOT = 58.15, REACH = 60.85, GRAB = 61.22, RAISE = 62.3, SWING = 63.76, HIT = 63.94, CLANG = 64.3, ROLL = 69.45, STILL = 74.2, COME = 76.0;
+const fTurn = (t) => track(t, [[REACH - 0.45, 0.72], [REACH - 0.1, 1], [GRAB + 0.15, 1], [GRAB + 0.55, 0.55], [RAISE - 0.12, 0.55], [RAISE + 0.24, 0.4]]);
 const fSneak = (t) => 1 - sm(t, SPOT, SPOT + 0.3);
 const fLean = (t) => -4 * fSpeed(t) - 4 * fSneak(t) + 7 * startle(t - SPOT) - 7 * bump(t, SPOT + 0.15, SPOT + 1.0) - 15 * bump(t, REACH - 0.1, GRAB + 0.5)
   + trackSpring(t, [[0, 0], [GRAB + 0.3, 4], [RAISE, -6], [SWING, -11], [CLANG + 0.1, -7]], { feel: 'heavy', windUp: 0.05 }) - 4 * startle(t - CLANG);
-const fCrouch = (t) => 1.2 * fSneak(t) + 5 * bump(t, SPOT - 0.05, SPOT + 0.45) + 5 * bump(t, REACH, GRAB + 0.4) + 3 * bump(t, GRAB + 0.15, GRAB + 0.45) + 4 * bump(t, RAISE - 0.14, RAISE + 0.1)
+const fCrouch = (t) => 1.2 * fSneak(t) + 5 * bump(t, SPOT - 0.05, SPOT + 0.45) + 5 * bump(t, REACH, GRAB + 0.4) + 3 * bump(t, GRAB + 0.15, GRAB + 0.45) + 7 * bump(t, HOP - 0.16, HOP + 0.04) + 6 * bump(t, HOP + 0.3, HOP + 0.55)
   + 5 * startle(t - CLANG) + 3 * sm(t, CLANG, CLANG + 0.5) + Math.max(0, settle(t, WB[1] + 0.3, 2.5, 12, 7));
 const fDrive = (t) => fX(t) + fTurn(t) * 30 - fLean(t) * 4;
 const TIN = [1356, 645];                                   // where the tin sits in the trolley
 const REACH_HAND = [0, (TIN[1] - (FLOOR - 228 * MVS)) / MVS + 6, (TIN[0] - 1245) / MVS];
-const SHOW_HAND = [-2, -6, 62], RAISE_HAND = [30, -86, 0], ELBOW_OUT = [46, -52, -10];
-const SHELF_TIN = [1436, 487], LAND = [1392, 962];           // the tin his elbow knocks off, and where it hits the floor
+const SHOW_HAND = [-2, -6, 62], RAISE_HAND = [40, -96, 8], ELBOW_OUT = [84, -44, 0];
+const SHELF_TIN = [1246, 576], LAND = [1262, 966];           // the tin his elbow knocks off, and where it hits the floor
 const mY = (y) => 0.00247 * (y - 409);                       // aisle perspective: character scale at floor y
 function fOpts(t) {
   const x = fX(t), fl = startle(t - CLANG), held = t >= GRAB, frozen = sm(t, CLANG + 0.3, CLANG + 1.0);
@@ -310,15 +311,15 @@ function fOpts(t) {
   const adm = Math.sin((t - GRAB) * 5) * 2 * sm(t, GRAB + 0.5, GRAB + 0.8) * (1 - sm(t, RAISE - 0.2, RAISE)); armR[1][1] += adm; armL[1][1] -= adm;      // he turns the tin over, admiring it
   const headTilt = -1.2 * Math.sin(2 * Math.PI * step) * wkk + overlap(fLean, t, 0.09, 0.8) + 8 * bump(t, GRAB + 0.2, RAISE - 0.1) - 7 * sm(t, RAISE, RAISE + 0.25) * (1 - sm(t, CLANG, CLANG + 0.15)) - 6 * fl;
   const energy = (1 - 0.7 * fSpeed(t)) * (1 - frozen);
-  return withAlive({ x, y: FLOOR, s: MVS, t, turn: fTurn(t), expr, look, lean: fLean(t), headTilt, hipX: 4 * fl - 2 * startle(t - SPOT), crouch: fCrouch(t),
+  return withAlive({ x, y: FLOOR - hopY(t), s: MVS, t, turn: fTurn(t), expr, look, lean: fLean(t), headTilt, hipX: 4 * fl - 2 * startle(t - SPOT), crouch: fCrouch(t),
     walkDist: fDist(t), stride: STRIDE, lift: 12, smoothGait: true, walkSquash: 0.25, walkMix: 1 - sm(t, WB[1] + 0.05, WB[1] + 0.45), ...lagsOf(fDrive, t),
     breath: t > CLANG ? 0.5 * (1 - frozen) : breathe(t, 1.4, 0.5), squash: 0.8 * startle(t - SPOT) + fl + 0.6 * startle(t - HIT), shake: t > CLANG ? 0.5 * fl + 0.16 * (1 - sm(t, STILL - 0.4, STILL)) : 0.25 * startle(t - SPOT), arms: [armL, armR],
     props: { right: held ? (g2, h, info) => tin(g2, h[0] + 2, h[1] - 14 * info.s, 0.95 * info.s / MVS, 0.1 - 0.25 * fl + 0.02 * Math.sin((t - GRAB) * 5) * (t < RAISE ? 1 : 0)) : null } }, t, { energy });
 }
 // the knocked tin: tips off the shelf, drops, bounces twice, then rolls away down the aisle (into depth)
-function fallenTin(t) { const dt = t - HIT; if (dt <= 0) return { x: SHELF_TIN[0], y: SHELF_TIN[1], s: 0.95, rot: 0 };
+function fallenTin(t) { const dt = t - HIT; if (dt <= 0) return { x: SHELF_TIN[0], y: SHELF_TIN[1], s: 0.72, rot: 0 };
   const T0 = CLANG - HIT, [lx, ly] = LAND;
-  if (t < CLANG) { const u = dt / T0; return { x: lerp(SHELF_TIN[0], lx, ease.out(u) * 0.9 + u * 0.1), y: lerp(SHELF_TIN[1], ly, u * u), s: 0.95 + 0.1 * u, rot: -u * u * 3.6 }; }
+  if (t < CLANG) { const u = dt / T0; return { x: lerp(SHELF_TIN[0], lx, ease.out(u) * 0.9 + u * 0.1), y: lerp(SHELF_TIN[1], ly, u * u), s: 0.72 + 0.33 * u, rot: -u * u * 3.6 }; }
   const d = t - CLANG, b1 = 0.32, b2 = 0.22;
   const hop = d < b1 ? 95 * Math.sin(Math.PI * d / b1) : d < b1 + b2 ? 34 * Math.sin(Math.PI * (d - b1) / b2) : 0;
   const r = 1 - Math.exp(-Math.max(0, d - 0.25) * 0.42), yy = lerp(ly, 742, r), xx = lerp(lx - 46 * clamp(d / 0.5), 1010, r);          // rolling away, slower and slower
@@ -329,10 +330,10 @@ function shotF(g, t, A) {
   let view, shake = [0, 0];
   if (t < CLANG) view = punches(t, { z: lerp(1.3, 1.4, sm(t, E1, 60.5)) - 0.06 * sm(t, RAISE - 0.2, RAISE + 0.4), x: lerp(1010, 1180, sm(t, E1, 60.5)), y: 692 - 34 * sm(t, RAISE - 0.2, RAISE + 0.4) },
     [[SPOT + 0.02, 0.32, { z: 2.1, x: x + 60, y: 600 }, 0.4], [60.12, 0.5, { z: 2.3, x: 1340, y: 640 }, 0.4], [GRAB + 0.3, 0.6, { z: 2.05, x: 1290, y: 580 }, 0.4]]);
-  else if (t < ROLL) { view = punches(t, { z: lerp(1.34, 1.28, sm(t, CLANG, ROLL)), x: lerp(1180, 1140, sm(t, CLANG, CLANG + 1)), y: lerp(658, 690, sm(t, CLANG, CLANG + 0.5)) }, [[CLANG + 0.5, 0.45, { z: 2.2, x: 1262, y: 585 }, 0.45], [67.45, 0.8, { z: 2.1, x: 1350, y: 520 }, 0.5]]); shake = camShake(t, 9, CLANG, 0.45); }
+  else if (t < ROLL) { view = punches(t, { z: lerp(1.34, 1.28, sm(t, CLANG, ROLL)), x: lerp(1180, 1140, sm(t, CLANG, CLANG + 1)), y: lerp(658, 690, sm(t, CLANG, CLANG + 0.5)) }, [[CLANG + 0.5, 0.45, { z: 2.2, x: FXE + 17, y: 585 }, 0.45], [67.45, 0.8, { z: 2.1, x: FXE + 60, y: 575 }, 0.5]]); shake = camShake(t, 9, CLANG, 0.45); }
   else if (t < STILL) view = { z: lerp(1.0, 1.12, sm(t, ROLL, STILL)), x: lerp(960, 1010, sm(t, ROLL, STILL)), y: lerp(600, 640, sm(t, ROLL, STILL)) };                      // CUT: the whole aisle, the sound rolling down it
-  else if (t < COME) view = { z: lerp(2.15, 2.3, sm(t, STILL, COME)), x: 1262, y: lerp(580, 572, sm(t, STILL, COME)), blur: 2.5 };                                         // CUT: close on Vini. Only his eyes move.
-  else view = { z: lerp(2.0, 1.42, sm(t, COME + 0.9, F1 - 0.3)), x: lerp(985, 1085, sm(t, COME + 0.9, F1 - 0.3)), y: lerp(610, 668, sm(t, COME + 0.9, F1 - 0.3)) };      // CUT: the far end of the aisle
+  else if (t < COME) view = { z: lerp(2.15, 2.3, sm(t, STILL, COME)), x: FXE + 17, y: lerp(580, 572, sm(t, STILL, COME)), blur: 2.5 };                                         // CUT: close on Vini. Only his eyes move.
+  else view = { z: lerp(2.0, 1.72, sm(t, COME + 0.9, F1 - 0.3)), x: lerp(985, 1085, sm(t, COME + 0.9, F1 - 0.3)), y: lerp(610, 668, sm(t, COME + 0.9, F1 - 0.3)) };      // CUT: the far end of the aisle
   const c = camBegin(g, A.bg.supermarket, view, shake);
   // sound rolling down the aisle: rings on the floor that travel into depth
   const ft = fallenTin(t);
@@ -340,16 +341,15 @@ function shotF(g, t, A) {
   if (t > ROLL - 0.1 && t < STILL) for (let i = 0; i < 6; i++) { const p = ((t - ROLL) * 0.42 + i / 6) % 1, yy = lerp(905, 668, ease.out(p)), sc = mY(yy) / mY(930), a = Math.sin(Math.PI * p) * 0.7 * sm(t, ROLL - 0.1, ROLL + 0.3) * (1 - sm(t, STILL - 0.5, STILL));
     g.strokeStyle = alpha('#f4efe2', a); g.lineWidth = 2 + 5 * sc; g.beginPath(); g.ellipse(lerp(1150, 980, ease.out(p)), yy, 430 * sc, 60 * sc, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke(); }
   // the thing at the far end: dark against the lit freezer, then closer
-  if (t > COME + 0.2) { const zy = 409 + (656 - 409) * Math.exp(0.082 * Math.max(0, t - COME - 0.9)), zk = clamp((t - COME - 0.9) / 3.4);
+  if (t > COME + 0.2) { const zy = 409 + (656 - 409) * Math.exp(0.11 * Math.max(0, t - COME - 0.9)), zk = clamp((t - COME - 0.9) / 3.4);
     drawZombie(g, A.zombie, { kind: 'worker', x: 968 + 16 * zk, y: zy, s: mY(zy), t, seed: 2.3, dir: 0, walk: t > COME + 0.9, alpha: so(t, COME + 0.25, COME + 0.8), b: lerp(0.2, 0.62, zk), expr: t > COME + 2 ? 'groan' : 'zombie', headTurn: 0.5 * (1 - sm(t, COME + 0.6, COME + 1.0)) }); }
   if (t < GRAB) tin(g, TIN[0], TIN[1], 0.95, 0.06);
-  tin(g, 1476, 487, 0.95, 0);                                 // its neighbour stays on the shelf
   if (ft.rolling || t < HIT + 0.001) drawTinAt(g, ft, t);     // on the shelf / rolling away: behind Vini
   drawVini(g, A.vini, o);
   if (!ft.rolling && t >= HIT + 0.001) drawTinAt(g, ft, t);   // falling and bouncing: in front
-  if (t > HIT && t < HIT + 0.25) { const k = (t - HIT) / 0.25; g.strokeStyle = alpha('#f4efe2', 1 - k); g.lineWidth = 5; g.lineCap = 'round'; for (let i = 0; i < 5; i++) { const a = -2.4 + i * 0.5; g.beginPath(); g.moveTo(1418 + Math.cos(a) * (14 + k * 18), 500 + Math.sin(a) * (14 + k * 18)); g.lineTo(1418 + Math.cos(a) * (28 + k * 36), 500 + Math.sin(a) * (28 + k * 36)); g.stroke(); } }
+  const HX = SHELF_TIN[0] + 4, HY = SHELF_TIN[1] - 6;
+  if (t > HIT && t < HIT + 0.25) { const k = (t - HIT) / 0.25; g.strokeStyle = alpha('#f4efe2', 1 - k); g.lineWidth = 5; g.lineCap = 'round'; for (let i = 0; i < 5; i++) { const a = -2.4 + i * 0.5; g.beginPath(); g.moveTo(HX + Math.cos(a) * (14 + k * 18), HY + Math.sin(a) * (14 + k * 18)); g.lineTo(HX + Math.cos(a) * (28 + k * 36), HY + Math.sin(a) * (28 + k * 36)); g.stroke(); } }
   if (aft > 0 && aft < 0.3) { const k = aft / 0.3; g.strokeStyle = alpha('#ffffff', 1 - k); g.lineWidth = 7; g.lineCap = 'round'; for (let i = 0; i < 9; i++) { const a = Math.PI + i * Math.PI / 8; g.beginPath(); g.moveTo(LAND[0] + Math.cos(a) * (30 + k * 50), LAND[1] + Math.sin(a) * (22 + k * 36)); g.lineTo(LAND[0] + Math.cos(a) * (60 + k * 110), LAND[1] + Math.sin(a) * (44 + k * 80)); g.stroke(); } }
-  /*DBG*/ for (const [bn, col] of [['forearm_r', '#f00'], ['hand_r', '#00f'], ['upperarm_r', '#ff0']]) { const [qx2, qy2] = boneScreen(A.vini, o, bn); g.fillStyle = col; g.beginPath(); g.arc(qx2, qy2, 5, 0, 7); g.fill(); } for (let gx = 1200; gx <= 1500; gx += 50) { g.fillStyle = '#0ff'; g.fillRect(gx, 400, 1, 250); } for (let gy = 400; gy <= 650; gy += 50) g.fillRect(1200, gy, 300, 1);
   camEnd(g);
   // ---- overlays
   const [tx, ty] = toScreen(c, 1352, 520), ks = pop(t, SPOT + 0.17) * (1 - sm(t, 59.7, 60.0));
@@ -360,8 +360,8 @@ function shotF(g, t, A) {
   if (t > RAISE && t < CLANG) { note(g, 'BEANS!!', W * 0.27, H * 0.3, { size: 120, k: pop(t, RAISE + 0.35) * (1 - sm(t, CLANG - 0.12, CLANG)), rot: -0.06 }); note(g, '(like a trophy)', W * 0.27, H * 0.42, { size: 52, k: pop(t, 63.0) * (1 - sm(t, CLANG - 0.12, CLANG)), color: '#ece6d6', glow: false }); }
   if (t >= CLANG && t < ROLL) bigText(g, 'CLANG', W * 0.3 + Math.sin(t * 34) * 7 * (1 - sm(t, CLANG, CLANG + 0.8)), H * 0.27, { size: 230, k: pop(t, CLANG, 0.22) * (1 - sm(t, V1 - 0.25, V1 + 0.05)), rot: -0.08, color: '#ff4a3a' });
   if (t >= V1 && t < ROLL) mistake(g, 1, W * 0.27, H * 0.24, t, V1 + 0.12);
-  if (t > 67.4 && t < ROLL) { const [ex, ey] = toScreen(c, ...boneScreen(A.vini, o, 'forearm_l')), ke = 1 - sm(t, ROLL - 0.3, ROLL); note(g, 'his elbow', ex - 330, ey + 170, { size: 70, k: pop(t, 67.5) * ke }); arrowTo(g, ex - 250, ey + 130, ex - 26, ey + 16, so(t, 67.55, 67.9) * ke, RED, -30);
-    const [qx, qy] = toScreen(c, 1436, 500); note(g, 'the shelf', qx + 200, qy - 150, { size: 64, k: pop(t, 68.1) * ke, rot: 0.04 }); arrowTo(g, qx + 170, qy - 110, qx + 30, qy - 10, so(t, 68.15, 68.5) * ke, RED, 30); }
+  if (t > 67.4 && t < ROLL) { const [ex, ey] = toScreen(c, ...boneScreen(A.vini, o, 'forearm_l')), ke = 1 - sm(t, ROLL - 0.3, ROLL); note(g, 'his elbow', ex + 190, ey + 175, { size: 70, k: pop(t, 67.5) * ke }); arrowTo(g, ex + 130, ey + 130, ex + 16, ey + 20, so(t, 67.55, 67.9) * ke, RED, 30);
+    const [qx, qy] = toScreen(c, SHELF_TIN[0] + 20, SHELF_TIN[1] + 6); note(g, 'the shelf', qx + 200, qy - 150, { size: 64, k: pop(t, 68.1) * ke, rot: 0.04 }); arrowTo(g, qx + 170, qy - 110, qx + 30, qy - 10, so(t, 68.15, 68.5) * ke, RED, 30); }
   if (t >= ROLL && t < STILL) { const [rx, ry] = toScreen(c, ft.x, ft.y); note(g, 'one tin.', rx + 210, ry - 60, { size: 64, k: pop(t, ROLL + 0.2) * (1 - sm(t, 71.4, 71.8)) }); arrowTo(g, rx + 150, ry - 40, rx + 36, ry - 6, so(t, ROLL + 0.3, ROLL + 0.6) * (1 - sm(t, 71.4, 71.8)), RED, 10);
     [[0.6, 500, 500, 86], [1.5, 690, 400, 62], [2.4, 835, 330, 44], [3.3, 930, 290, 30]].forEach(([d, ex, ey, sz], i) => note(g, i === 3 ? 'clang…' : 'clang', ex, ey, { size: sz, k: pop(t, ROLL + d) * (1 - sm(t, ROLL + d + 1.5, ROLL + d + 2.3)), color: '#ece6d6', glow: false, rot: -0.1 + i * 0.03 }));
     note(g, 'every aisle in the shop', W * 0.7, H * 0.2, { size: 70, k: pop(t, 72.1) * (1 - sm(t, STILL - 0.3, STILL)), rot: 0.03 }); }
@@ -370,13 +370,13 @@ function shotF(g, t, A) {
     note(g, '(walking towards the noise)', W * 0.3, H * 0.9, { size: 56, k: pop(t, 78.4), color: '#ece6d6', glow: false }); }
   day(g, t); vignette(g, t < CLANG ? 0.36 : 0.5 + 0.08 * sm(t, COME, F1)); }
 function drawTinAt(g, ft, t) { if (ft.rolling) { g.fillStyle = 'rgba(25,20,16,0.3)'; g.beginPath(); g.ellipse(ft.x, ft.y + 15 * ft.s, 26 * ft.s, 6 * ft.s, 0, 0, 7); g.fill(); }
-  tin(g, ft.x, ft.y - (ft.rolling ? 0 : 22 * ft.s), ft.s, ft.rot);
+  tin(g, ft.x, ft.y - (ft.rolling ? 0 : 22 * ft.s), ft.s, ft.rot, { color: '#3f7a4a' });   // green label, so it never reads as the tin in his hand
   if (ft.rolling && ft.r < 0.93) { const v = 1 - ft.r; g.strokeStyle = alpha('#f4efe2', 0.6 * v); g.lineWidth = 3 * ft.s; g.lineCap = 'round'; for (const dy of [-8, 8]) { g.beginPath(); g.moveTo(ft.x + 30 * ft.s, ft.y + (dy + 26) * ft.s); g.lineTo(ft.x + (30 + 46 * v) * ft.s, ft.y + (dy + 26 + 20 * v) * ft.s); g.stroke(); } } }
 
 // =====================================================================================================
 // G — out the back and home: tracker, the bag, the radio, Vini's own rule (80.35 → 89.9)
 // =====================================================================================================
-const GY = 968, GS = sY(GY), GSPD = 150, GT0 = 81.45, gDist = (t) => GSPD * Math.max(0, t - GT0), gX = (t) => 2060 - gDist(t) * GS;
+const GY = 968, GS = sY(GY), GSPD = 112, GT0 = 80.7, gDist = (t) => GSPD * Math.max(0, t - GT0), gX = (t) => 2060 - gDist(t) * GS;
 function radioProp(g, x, y, s, rot) { g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s); g.lineJoin = 'round'; g.lineCap = 'round';
   g.strokeStyle = INK; g.lineWidth = 4; g.beginPath(); g.moveTo(22, -40); g.lineTo(40, -112); g.stroke(); g.fillStyle = '#c8262e'; g.beginPath(); g.arc(40, -114, 5, 0, 7); g.fill(); g.stroke();
   g.fillStyle = '#8a5a3a'; g.lineWidth = 3.5; g.beginPath(); g.roundRect(-34, -44, 68, 62, 6); g.fill(); g.stroke();
@@ -392,8 +392,8 @@ function shotG(g, t, A) {
     walkDist: -d, stride: STRIDE, lift: 17, smoothGait: true, walkSquash: 0.25, hairLag: clamp(1.5 + Math.sin(2 * Math.PI * step) * 1, -2.5, 2.5), packLag: -4 + Math.sin(2 * Math.PI * step + 0.8) * 3.5,
     breath: breathe(t, 0.7, 0.8), arms: [hug(0), hug(0.6)], props: { left: (g2, h, info) => tin(g2, h[0] - 4 * info.s, h[1] - 8 * info.s, 1.05 * info.s / MVS * 1.25, -0.12 + Math.sin(2 * Math.PI * step) * 0.04) } }, t, { energy: 0.3 });
   const [px, py] = boneScreen(A.vini, o, 'chest'), bob = Math.sin(2 * Math.PI * step + 0.8) * 0.06;
-  radioProp(g, px + 62 * GS, py - 96 * GS, GS * 0.95, 0.22 + bob);                                // the radio pokes out of the top of the bag
-  tin(g, px + 96 * GS, py - 92 * GS, GS * 0.8, 0.5 + bob, { color: '#3f6fb0' });
+  radioProp(g, px + 58 * GS, py - 66 * GS, GS * 0.95, 0.22 + bob);                                // the radio pokes out of the top of the bag
+  tin(g, px + 92 * GS, py - 58 * GS, GS * 0.8, 0.5 + bob, { color: '#3f6fb0' });
   drawVini(g, A.vini, o);
   camEnd(g);
   g.save(); g.translate(-470 * sm(t, 86.0, 86.5), 0);
