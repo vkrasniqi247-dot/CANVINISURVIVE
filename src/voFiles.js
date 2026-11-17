@@ -1,0 +1,1 @@
+export const VO_FILES = ["00_cold_open","01_day1","02_day3a","03_day3b","04_day3c","05_day7a","06_day7b","07_day12a","08_day12b","09_day18a","10_day18b","11_day18c","12_day24","13_day30a","14_day30b","15_day30c","16_outro"];
