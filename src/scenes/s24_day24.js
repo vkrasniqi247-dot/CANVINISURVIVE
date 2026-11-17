@@ -153,7 +153,7 @@ function stage(g, t, o = {}) { crate(g); candle(g, CANDLE[0], CANDLE[1], t); shr
   if (o.tin4 === 'row') special(g, T4X, ROW - (o.hop?.[3] || 0), TS, 0, 0, t);
   if (o.radio !== false) radio(g, RAD[0], RAD[1], RS, o.on || 0, t);
   if (o.tin4 === 'shrine') special(g, SHR[0], SHR[1], TS, 0, o.tagK ?? 1, t);
-  for (let i = 0; i < (o.socks || 0); i++) sockLying(g, 742 + i * 58, i === 1 ? -0.05 : 0.04);
+  for (let i = 0; i < (o.socks || 0); i++) sockLying(g, 772 + i * 52, i === 1 ? -0.05 : 0.04);
   if (o.bag) bag(g, BAGF[0], BAGF[1], 1.25, 0.03); }
 function room(g, t, A, view, shake, body) { const c = camBegin(g, A.bg.barricade, view, shake || [0, 0]); cover(g); body(c); camEnd(g);
   const [lx, ly] = toScreen(c, CANDLE[0] + 60, CANDLE[1] - 60), f = 1 + 0.04 * Math.sin(t * 11) + 0.03 * Math.sin(t * 23.7);
@@ -179,7 +179,7 @@ function shB(g, t, A) {
   const act = (tt) => ({ lean: 4 + 3 * sm(tt, 7.2, 7.6), headTilt: 5, crouch: 4 + 5 * bump(tt, 7.3, 7.9), turn: 0.1, energy: 0.4 });
   const hop = CNT.map((c0) => 13 * bump(t, c0, c0 + 0.22) + (t > c0 + 0.22 ? -settle(t, c0 + 0.22, 3, 22, 9) : 0));
   const base = { z: lerp(2.2, 2.45, sm(t, 4.3, 8.1)), x: lerp(775, 800, sm(t, 4.3, 8.1)), y: 845 };
-  const c = room(g, t, A, punches(t, base, [[6.35, 9, { z: 3.3, x: 850, y: 862 }]]), null, () => {
+  const c = room(g, t, A, punches(t, base, [[6.35, 9, { z: 3.6, x: 850, y: 905 }]]), null, () => {
     const held = t >= GRAB; let hp = null;
     kneel(g, t, A, act, { expr: 'exhausted', look: [-0.5, 0.8], arms: [armSpring(t, [[0, RL], [7.3, HL(861, 868, 40)], [GRAB + 0.1, HL(866, 830, 40)]], { feel: 'soft' }), armSpring(t, [[0, RR]])],
       props: { left: (g2, h) => { hp = h; } } });
@@ -198,7 +198,7 @@ function shC(g, t, A) {
     headTilt: move(tt, 3, 12, SHAKE[0] - 0.1) + move(tt, 0, -12, SNIFF - 0.05) + move(tt, 0, -5, PASS + 0.2), crouch: 6 * sm(tt, PASS + 0.1, SETD) - 4 * sm(tt, SETD + 0.2, SETD + 0.6),
     turn: track(tt, [[PASS, 0.08], [PASS + 0.35, 0.3]]), energy: 0.5 });
   const base = { z: lerp(2.2, 2.3, sm(t, 8.06, 11.8)), x: 900, y: lerp(770, 765, sm(t, 8.06, 11.8)) };
-  const c = room(g, t, A, punches(t, base, [[SETD + 0.15, 9, { z: 3.3, x: 955, y: 850 }]]), null, () => {
+  const c = room(g, t, A, punches(t, base, [[SETD + 0.15, 9, { z: 2.9, x: 950, y: 806 }]]), null, () => {
     const inL = t < PASS + 0.12, inR = !inL && t < SETD;
     const armL = armSpring(t, [[0, HL(898, 808, 40)], [SHAKE[0] - 0.15, HL(826, 696, 12)], [SNIFF - 0.05, HL(897, 730, 44)], [PASS, HL(898, 800, 40)], [PASS + 0.3, HL(850, 850, 30)], [SETD + 0.1, RL]], { feel: 'snappy', windUp: 0.05 });
     const armR = armSpring(t, [[0, RR], [PASS - 0.12, HR(912, 806, 40)], [PASS + 0.22, HR(SHR[0] - 2, SHR[1] - 36, 44)], [SETD + 0.25, HR(990, 826, 30)], [SETD + 0.7, RR]], { feel: 'soft', delay: 0.04 });
@@ -222,7 +222,7 @@ function shD(g, t, A) {
     headTilt: -4 * sm(tt, 13.2, 13.5) + 8 * sm(tt, CLICK + 0.5, CLICK + 0.9), crouch: 5 * bump(tt, 13.3, CLICK + 0.6), turn: track(tt, [[12.9, 0.3], [13.25, 0.55]]), energy: 0.6 });
   const base = { z: lerp(1.7, 1.85, sm(t, 12.9, 17.2)), x: lerp(975, 1000, sm(t, 12.9, 17.2)), y: 775 };
   const on = clamp((t - CLICK) / 0.08);
-  const c = room(g, t, A, punches(t, base, [[15.05, 1.45, { z: 3.0, x: 1075, y: 840 }, 0.4]]), camShake(t, 1.5, CLICK, 0.2), () => {
+  const c = room(g, t, A, punches(t, base, [[15.05, 1.45, { z: 3.6, x: 1060, y: 900 }, 0.4]]), camShake(t, 1.5, CLICK, 0.2), () => {
     kneel(g, t, A, act, { expr: exprTrack(t, [[0, 'neutral'], [13.2, 'determined'], [CLICK + 0.5, 'worried'], [15.6, 'exhausted']]), look: [0.85, 0.75],
       arms: [armSpring(t, [[0, RL]]), armSpring(t, [[0, RR], [13.35, HR(RAD[0] - 16, RAD[1] - 92, 40)], [CLICK - 0.12, HR(RAD[0] - 17, RAD[1] - 62, 40)], [CLICK + 0.3, HR(1000, 800, 30)], [CLICK + 1.0, RR]], { delay: 0.05 })] });
     stage(g, t, { tin4: 'shrine', on }); });
@@ -242,7 +242,7 @@ function shE(g, t, A) {
     energy: tt < VOICE ? 0.5 : 0.3 + 0.7 * sm(tt, VOICE + 0.6, VOICE + 1.2), bp: tt < VOICE ? 3.6 : 1.0, ba: 0.8 });
   const base = { z: lerp(1.55, 1.68, sm(t, 17.18, 20.4)) + 0.2 * sm(t, 20.42, 21.2), x: lerp(985, 975, sm(t, 17.18, 20.4)) + 35 * sm(t, 20.42, 21.2), y: 790 };
   const held = t >= SNATCH + 0.1;
-  const c = room(g, t, A, punches(t, base, [[18.95, 0.85, { z: 2.5, x: 905, y: 715 }, 0.4], [VOICE + 0.03, 0.22, { z: 2.3, x: 950, y: 740 }, 0.35]]), camShake(t, 4, VOICE, 0.3), () => {
+  const c = room(g, t, A, punches(t, base, [[18.95, 0.85, { z: 2.3, x: 1010, y: 735 }, 0.4], [VOICE + 0.03, 0.22, { z: 2.3, x: 950, y: 740 }, 0.35]]), camShake(t, 4, VOICE, 0.3), () => {
     const drum = t < VOICE ? Math.max(0, Math.sin(t * 9.5)) ** 6 * -5 : 0;
     const armL = armSpring(t, [[0, HL(803, 726, 30)], [VOICE, 'out'], [VOICE + 0.3, HL(850, 800, 30)], [SNATCH + 0.32, HL(858, 800, 30)]], { feel: 'snappy', windUp: 0.04 });
     const armR = armSpring(t, [[0, RR], [VOICE + 0.02, 'out'], [SNATCH - 0.12, HR(RAD[0] + 4, RAD[1] - 76, 40)], [SNATCH + 0.16, HR(942, 800, 30)]], { feel: 'snappy', delay: 0.04, windUp: 0.04 });
@@ -255,8 +255,8 @@ function shE(g, t, A) {
   if (!sp) { wave(g, rx + 50 * c.z, ry - 60 * c.z, 250 * c.z, 44 * c.z, t, false, '#d8dce0');
     note(g, 'kssshhhhh…', rx + 190 * c.z + Math.sin(t * 31) * 3, ry - 140 * c.z + Math.cos(t * 27) * 2, { size: 64, k: pop(t, 17.5), color: '#e6e9ee', glow: false, rot: 0.04 });
     note(g, '3 weeks of this', W * 0.24, H * 0.3, { size: 70, k: pop(t, 18.2) * (1 - sm(t, 20.3, 20.55)), rot: -0.04 }); }
-  else { const fl = 1 - so(t, VOICE, VOICE + 0.35); wave(g, rx + (held ? 70 : 50) * c.z, ry - 60 * c.z, 250 * c.z, (44 + 30 * fl) * c.z, t, true, '#ffd66a');
-    note(g, 'a VOICE?!', W * 0.26, H * 0.3, { size: 100, k: pop(t, VOICE + 0.12), rot: -0.05 }); fade(g, 0.35 * fl, '#fff6d8'); }
+  else { const fl = 1 - so(t, VOICE, VOICE + 0.35); wave(g, rx + (held ? 105 : 50) * c.z, ry - (held ? -5 : 60) * c.z, 250 * c.z, (44 + 30 * fl) * c.z, t, true, '#ffd66a');
+    note(g, 'a VOICE?!', W * 0.2, H * 0.27, { size: 100, k: pop(t, VOICE + 0.12), rot: -0.05 }); fade(g, 0.35 * fl, '#fff6d8'); }
   hud(g, t); vignette(g, 0.42); }
 
 // ---------- F: the broadcast, part 1 and 3 — Vini with the radio in both hands ----------
@@ -268,7 +268,7 @@ function listen(g, t, A, view, o = {}) {
       props: { right: (g2, h) => radio(g2, h[0] - 42, h[1] + 25, RS, 1, t, -0.04 + Math.sin(t * 40) * 0.006) } });
     stage(g, t, { tin4: 'shrine', radio: false }); }); }
 function shF1(g, t, A) { const c = listen(g, t, A, { z: lerp(2.15, 2.35, sm(t, 22.42, 24.7)), x: lerp(915, 900, sm(t, 22.42, 24.7)), y: 745 }, { expr: exprTrack(t, [[0, 'happy'], [23.3, 'shock'], [23.9, 'happy']]) });
-  const [rx, ry] = toScreen(c, 900, 790); wave(g, rx + 150, ry - 90, 520, 70, t, true, '#ffd66a');
+  const [rx, ry] = toScreen(c, 900, 790); wave(g, rx + 230, ry - 60, 520, 70, t, true, '#ffd66a');
   hud(g, t); vignette(g, 0.45); band(g, t); }
 function shF3(g, t, A) { const base = { z: lerp(1.8, 1.92, sm(t, 27.78, 30.6)), x: lerp(820, 850, sm(t, 27.78, 30.6)), y: 740 };
   listen(g, t, A, punches(t, base, [[HI30 + 0.02, 9, { z: 2.3, x: 880, y: 730 }]]), { turn: -0.3, look: t < HI30 ? [-0.25, 0.85] : [lerp(-0.25, 0, so(t, HI30, HI30 + 0.1)), lerp(0.85, 0, so(t, HI30, HI30 + 0.1))], expr: exprTrack(t, [[0, 'happy'], [28.6, 'neutral'], [HI30, 'shock'], [HI30 + 0.5, 'worried']]) });
@@ -373,8 +373,8 @@ function shJ(g, t) { const T0 = 35.86, land = so(t, T0 - 0.25, T0 + 0.3);
   // doodle 3: not at night
   const mx = 1520, my = 600, mk = drawK(t, 39.95, 0.4);
   penStrokes(g, [[[...circ(mx, my, 62, 1.0, 5.3, 18), ...circ(mx + 34, my, 50, 4.6, 1.7, 14).map((p) => p)], 7]], mk);
-  cross(g, mx, my, 70, ease.out(clamp((t - 40.25) / 0.25)));
-  writeOn(g, 'not at night', mx, 800, wk(t, 40.2, 'not at night', 30), { size: 56, pen: false });
+  cross(g, mx, my, 70, ease.out(clamp((t - 40.3) / 0.25)));
+  writeOn(g, 'not at night', mx, 800, wk(t, 39.95, 'not at night', 30), { size: 56, pen: false });
   g.restore(); vignette(g, 0.2); }
 
 // ---------- K: packing — water, food, torch, first aid kit ----------
@@ -421,7 +421,7 @@ function shL(g, t, A) { const env = sm(t, RAT[0], RAT[0] + 0.1) * (1 - sm(t, RAT
 // ---------- M: he wraps his last tins in socks, so they won't clink ----------
 const PUSH = [46.75, 47.45], LAY = 48.0;
 function shM(g, t, A) { const u = sm(t, PUSH[0], PUSH[1]), lay = sm(t, LAY, LAY + 0.4);
-  const SK = [lerp(832, 852, lay), lerp(798, 872, lay)];                                   // where the sock cuff is
+  const SK = [lerp(832, 868, lay), lerp(798, 872, lay)];                                   // where the sock cuff is
   const act = (tt) => ({ lean: 3 + 3 * sm(tt, PUSH[0], PUSH[1]) + 3 * sm(tt, LAY, LAY + 0.4), headTilt: 6, crouch: 3 + 3 * bump(tt, PUSH[0], PUSH[1] + 0.2) + 5 * sm(tt, LAY, LAY + 0.4), turn: 0.1, energy: 0.4 });
   const base = { z: lerp(2.5, 2.7, sm(t, 45.78, 49.4)), x: lerp(850, 835, sm(t, 45.78, 49.4)), y: 830 };
   const c = room(g, t, A, base, null, () => {
@@ -432,7 +432,7 @@ function shM(g, t, A) { const u = sm(t, PUSH[0], PUSH[1]), lay = sm(t, LAY, LAY 
       right: t < PUSH[0] ? (g2, h) => tinAt(g2, h[0] - 2, h[1] + 30 + 22 * TS, TS, 0.02, { color: TCOL[2] }) : null } : {};
     kneel(g, t, A, act, { expr: 'determined', look: [-0.2, 0.9], arms: [aL, aR], props: P });
     stage(g, t, { tin4: 'shrine', tins: false, socks: t < LAY + 0.38 ? 2 : 3, bag: true }); });
-  const [sx, sy] = toScreen(c, 740, 870), kn = pop(t, 48.25);
+  const [sx, sy] = toScreen(c, 775, 870), kn = pop(t, 48.25);
   if (kn > 0) { note(g, 'no clink', sx - 40, sy - 290, { size: 88, k: kn, rot: -0.05 }); arrowTo(g, sx - 30, sy - 235, sx + 40, sy - 70, so(t, 48.35, 48.7) * kn, RED, -24); }
   note(g, 'sock', W * 0.72, H * 0.3, { size: 76, k: pop(t, 46.1) * (1 - sm(t, 47.6, 47.9)), color: '#f0e6d0', glow: false, rot: 0.05 });
   hud(g, t); vignette(g, 0.42); }

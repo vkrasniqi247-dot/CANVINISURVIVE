@@ -12,12 +12,9 @@ const VOA = 0.5, VOB = 31.6, VOC = 47.8;
 const T_C1 = 9.1, T_P2 = 16.6, T_R9 = 21.6, T_C2 = 26.1, T_BLK = 28.2, K1 = 29.2, K2 = 30.6, T_K = 31.3, T_V1 = 47.6, T_V2 = 51.0, T_V3 = 52.9;
 export const DUR = 58.6;
 export const VO = [['09_day18a', VOA], ['10_day18b', VOB], ['11_day18c', VOC]];
-// Shots that still need the night-city background (BG07). Each is drawn by placeholder(i) until the real shot exists.
-export const NEEDS_BG = [
-  ['BG07', 0, T_C1, 'Night city seen from Vini’s 5th-floor window: every building black, no lit windows or street lamps, only two or three distant fires glowing orange with smoke. DAY 18 counter slams in at 0.5 s. Slow push in.'],
-  ['BG07', T_P2, T_R9, 'Same night city, wider: one tiny warm candle-lit window (Vini’s) in a black block, visible from far down the street; shapes in the street below slowly turn toward it.'],
-];
-export const SFX = [['day_slam', VOA], ['match_strike', T_C1 + 0.5], ['candle_catch', T_C1 + 1.45], ['sting_mistake', T_C1 + 5.8], ['page_flip', T_R9], ['pen_scratch', T_R9 + 0.3], ['distant_thud', T_C2 + 0.85], ['blow_out', T_C2 + 1.5],
+// Shots that still need a background that does not exist. Empty: BG07 (night city) now exists and both shots are built on it.
+export const NEEDS_BG = [];
+export const SFX = [['day_slam', VOA], ['wind_night', 0.2], ['fire_crackle_distant', 5.1], ['candle_hum', T_P2], ['distant_groans', T_P2 + 2.4], ['match_strike', T_C1 + 0.5], ['candle_catch', T_C1 + 1.45], ['sting_mistake', T_C1 + 5.8], ['page_flip', T_R9], ['pen_scratch', T_R9 + 0.3], ['distant_thud', T_C2 + 0.85], ['blow_out', T_C2 + 1.5],
   ['knock', K1], ['knock', K2], ['knock', VOB + 2.4], ['knock', VOB + 3.45], ['room_tone_silence', VOB + 4.6], ['heartbeat_slow', VOB + 6.7], ['shuffle_away', VOB + 13.6], ['exhale', VOB + 15.05],
   ['tape_rip', T_V1 + 1.25], ['tape_rip', T_V1 + 2.2], ['stove_hiss', T_V2 + 0.1], ['whisper', T_V3 + 0.5], ['whisper', T_V3 + 2.0]];
 
@@ -90,7 +87,7 @@ export function knockShot(g, lt, A, o = {}) {
   if (o.holdAt != null) kL.push([o.holdAt, OVER]); if (rel) kL.push([ex + 0.12, [-6, 74, 22]]); kL.sort((a, b) => a[0] - b[0]);
   const armL = armSpring(lt, kL, { feel: 'snappy', windUp: 0.05 }), armR = armSpring(lt, [[-99, GRIP], [ex + 0.3, [10, 66, 24]]], { delay: 0.05, feel: 'soft' });
   armR[1][1] -= (crouch - 78) * (1 - clamp(slump));                      // the gripping hand stays planted while the body flinches
-  const kE = [[-99, 'scared']]; knocks.forEach(([k]) => kE.push([k, 'terror'], [k + 0.85, 'scared'])); if (rel) kE.push([ex, 'exhausted'], [ex + 1.0, 'relief']); kE.sort((a, b) => a[0] - b[0]);
+  const kE = [[-99, 'scared']]; knocks.forEach(([k]) => kE.push([k, 'shock'], [k + 0.6, 'scared']));   // a gasp, not the scream mouth: on a sheet the scream reads as a laugh if (rel) kE.push([ex, 'exhausted'], [ex + 1.0, 'relief']); kE.sort((a, b) => a[0] - b[0]);
   const n = Math.floor(lt / 1.1), LK = (i) => LOOKS[((i % LOOKS.length) + LOOKS.length) % LOOKS.length], dk = so(lt - n * 1.1, 0, 0.08), toDoor = knocks.some(([k]) => lt >= k && lt < k + 1.4);
   const look = toDoor ? [0.98, 0.04] : [lerp(LK(n - 1)[0], LK(n)[0], dk), lerp(LK(n - 1)[1], LK(n)[1], dk)];
   const drive = (tt) => -leanAt(tt) * 4, hairLag = clamp(-follow(drive, lt, { freq: 3.4, damp: 0.6 }) * 0.9, -2.5, 2.5);
@@ -128,12 +125,54 @@ export function knockShot(g, lt, A, o = {}) {
   return { c, head, view: vn };
 }
 
-// ---------- placeholders for the night-city shots (BG07 does not exist yet) ----------
-function placeholder(g, t, i) { const [bg, a, b, desc] = NEEDS_BG[i]; g.fillStyle = '#08080a'; g.fillRect(0, 0, W, H);
-  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#7a7a80'; g.font = '700 34px "Patrick Hand", sans-serif'; g.fillText(`PLACEHOLDER — needs ${bg} night city`, W / 2, H * 0.62);
-  g.font = '400 24px "Patrick Hand", sans-serif'; g.fillStyle = '#55555a'; const words = desc.split(' '); let line = '', y = H * 0.62 + 46;
-  for (const w of words) { if (g.measureText(line + w).width > 1100) { g.fillText(line, W / 2, y); y += 30; line = ''; } line += w + ' '; } g.fillText(line, W / 2, y);
-  g.fillText(`scene time ${a.toFixed(1)} – ${b.toFixed(1)} s`, W / 2, y + 40); }
+// ---------- the night city (BG07): seen from inside, through the big boarded window ----------
+const FIRES = [[655, 498, 0], [1218, 522, 2.1], [1755, 522, 4.3]], NV = { x: 300, y: 1130, s: 2.3, turn: 0.62 }, SILL = [770, 903];
+function fires(g, t, k = 1) { g.save(); g.globalCompositeOperation = 'lighter';                       // the painted fires flicker: additive glow, summed sines
+  for (const [x, y, ph] of FIRES) { const f = 1 + 3.2 * (flick(t * 0.8 + ph * 3) - 1), f2 = 1 + 3 * (flick(t * 1.7 + ph) - 1), wx = 5 * Math.sin(t * 5 + ph);
+    g.fillStyle = radGrad(g, x, y - 14, 0, 100 * f, [alpha('#ff8a30', clamp(0.4 * k * f)), alpha('#ff8a30', 0)]); g.beginPath(); g.arc(x, y - 14, 100 * f, 0, 7); g.fill();
+    g.fillStyle = radGrad(g, x + wx, y - 8, 0, 30 * f2, [alpha('#ffd080', clamp(0.55 * k * f2)), alpha('#ffd080', 0)]); g.beginPath(); g.arc(x + wx, y - 8, 30 * f2, 0, 7); g.fill(); }
+  g.restore(); }
+// the wall he stands against is unlit: darken everything left of the window frame (he becomes a dark figure)
+function wallShade(g, c, col) { const [x0] = toScreen(c, 470, 0), [x1] = toScreen(c, 610, 0); g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = linGrad(g, x0, 0, x1, 0, [col, '#ffffff']); g.fillRect(0, 0, W, H); g.restore(); }
+// "The power has been off for over two weeks. At night, the city is completely black, apart from the fires."
+function cityShot(g, t, A) { const k = sm(t, 0, T_C1), COLD = 5.3, FIRE = 7.35;
+  const c = camBegin(g, A.bg.nightcity, { z: lerp(1.0, 1.15, k), x: lerp(960, 1015, k), y: lerp(540, 518, k) });
+  fires(g, t);
+  const leanAt = (tt) => trackSpring(tt, [[0, -2], [COLD, -6], [FIRE, -3]], { feel: 'heavy', windUp: 0.05 });
+  const armL = armSpring(t, [[-9, 'relaxed'], [COLD, 'cold']], { delay: 0.05 }), armR = armSpring(t, [[-9, 'relaxed'], [COLD, 'chest']], { feel: 'soft' });
+  drawVini(g, A.vini, withAlive({ ...NV, t, expr: exprTrack(t, [[-9, 'worried'], [FIRE, 'scared']]), look: [0.82 + 0.15 * Math.sin(t * 0.7), -0.12], lean: leanAt(t), headTilt: overlap(leanAt, t, 0.09, 0.8), arms: [armL, armR],
+    shake: 0.12 * sm(t, COLD, COLD + 0.5), breath: breathe(t, 2.8, 0.6), hairLag: clamp(-follow((tt) => -leanAt(tt) * 4, t, { freq: 3.4, damp: 0.6 }) * 0.9, -2.5, 2.5), shadow: false }, t, { energy: 0.8 }));
+  camEnd(g);
+  wallShade(g, c, '#3c4468');
+  const pale = { color: '#d8e0ff', glow: false };
+  note(g, 'power: OFF  (16 days)', W * 0.54, H * 0.25, { size: 72, k: pop(t, 2.7) * (1 - sm(t, 4.9, 5.2)), rot: -0.02 });
+  note(g, 'street lights:  0', W * 0.54, H * 0.22, { size: 62, k: pop(t, 5.5) * (1 - sm(t, FIRE - 0.35, FIRE - 0.1)), ...pale, rot: -0.02 });
+  note(g, 'lit windows:  0', W * 0.56, H * 0.31, { size: 62, k: pop(t, 6.2) * (1 - sm(t, FIRE - 0.35, FIRE - 0.1)), ...pale, rot: 0.015 });
+  if (t > FIRE) { note(g, 'the only lights left', W * 0.6, H * 0.25, { size: 76, k: pop(t, FIRE), rot: -0.03 });
+    FIRES.forEach(([x, y], i) => { const [fx, fy] = toScreen(c, x, y - 40), at = FIRE + 0.2 + i * 0.18; arrowTo(g, W * (0.5 + 0.1 * i), H * 0.31, fx + (i - 1) * -14, fy - 22, so(t, at, at + 0.35), RED, (1 - i) * 26); }); }
+  vignette(g, 0.46); }
+// "Because in a dark city, one candle in a window can be seen from streets away."
+const EYES = [[640, 772, 2.35, 1], [1832, 812, 2.7, 1], [1012, 597, 3.05, 0.7], [1470, 591, 3.3, 0.7], [735, 832, 3.55, 1], [1795, 742, 3.8, 1], [1300, 599, 4.0, 0.7], [600, 838, 4.2, 1]];   // [x, y, time it turns, size]
+function windowCandle(g, t, A) { const u = t - T_P2, k = sm(u, 0.15, 3.4), fk = flick(t), FL = [SILL[0], SILL[1] - 66];
+  const c = camBegin(g, A.bg.nightcity, { z: lerp(2.1, 1.04, k), x: lerp(905, 975, k), y: lerp(790, 545, k) });
+  fires(g, t, 0.8);
+  g.save(); g.globalCompositeOperation = 'lighter';                                                // things out there turning to look
+  EYES.forEach(([x, y, at, sz], i) => { const a = sm(u, at, at + 0.25) * (Math.sin(t * 1.3 + i * 2.1) > 0.96 ? 0 : 1), sl = 10 * sz * (1 - so(u, at, at + 0.3)); if (a <= 0) return;
+    for (const dx of [-6.5 * sz, 6.5 * sz]) { g.fillStyle = radGrad(g, x + dx + sl, y, 0, 13 * sz, [alpha('#c9f29a', 0.3 * a), alpha('#c9f29a', 0)]); g.beginPath(); g.arc(x + dx + sl, y, 13 * sz, 0, 7); g.fill(); g.fillStyle = alpha('#e2ffb8', a); g.beginPath(); g.arc(x + dx + sl, y, 4.2 * sz, 0, 7); g.fill(); } });
+  g.restore();
+  candleBody(g, SILL[0], SILL[1]);
+  const armL = armSpring(u, [[-9, [-12, 6, 46]]], { delay: 0.05 }), armR = armSpring(u, [[-9, 'hips']], { feel: 'soft' });
+  drawVini(g, A.vini, withAlive({ ...NV, t, expr: 'happy', look: [0.55, 0.35], lean: -5, headTilt: 5, arms: [armL, armR], breath: breathe(t, 2.8, 0.6), hairLag: 0, shadow: false,
+    props: { left: (g2, h, info) => tin(g2, h[0] + 3, h[1] - 16 * info.s, 0.82 * info.s, -0.12) } }, t, { energy: 0.7 }));
+  camEnd(g);
+  wallShade(g, c, '#7d6a5c');
+  camRe(g, c, [0, 0], () => { g.save(); g.globalCompositeOperation = 'lighter'; const R = 430 * (0.94 + 0.06 * fk);
+    g.fillStyle = radGrad(g, FL[0], FL[1], 0, R, [alpha('#ffb050', 0.34), alpha('#ffb050', 0.1), alpha('#ffb050', 0)]); g.beginPath(); g.arc(FL[0], FL[1], R, 0, 7); g.fill(); g.restore();
+    flame(g, FL[0], FL[1], 1, t); });
+  const [fx, fy] = toScreen(c, FL[0], FL[1]);
+  if (u > 2.0) { note(g, 'visible for streets', fx + 520, fy - 80, { size: 78, k: pop(u, 2.0), rot: -0.03 }); arrowTo(g, fx + 280, fy - 60, fx + 48, fy - 12, so(u, 2.05, 2.45), RED, -26); }
+  note(g, '…and something noticed.', W * 0.56, H * 0.2, { size: 56, k: pop(u, 3.7), color: '#d8e0ff', glow: false, rot: 0.02 });
+  vignette(g, 0.46); }
 
 // ---------- the candle (interior, night) ----------
 const CV = { x: 215, y: 872, s: 1.85, turn: 0.6 }, CANDLE = [396, 607], FLAME = [396, 541];
@@ -233,7 +272,7 @@ function rule9(g, t) { const T0 = T_R9; page(g, t, T0, () => {
 
 // ---------- the three habits (clip 11_day18c) ----------
 // 1: covering every gap in the boards
-const PATCHES = [[430, 158, 330, 44, -9, 0.02], [788, 102, 320, 44, -9, -0.03], [788, 272, 320, 46, -9, 0.025], [366, 260, 200, 44, 1.25, -0.03], [430, 352, 330, 44, 2.2, 0.02]];   // [cx, cy, w, h, time it goes on, tilt]
+const PATCHES = [[430, 158, 330, 44, -9, 0.02], [788, 102, 320, 44, -9, -0.03], [788, 272, 320, 46, -9, 0.025], [450, 262, 200, 44, 1.25, -0.03], [430, 352, 330, 44, 2.2, 0.02]];   // [cx, cy, w, h, time it goes on, tilt]
 function patch(g, cx, cy, w, h, rot, k) { if (k <= 0) return; g.save(); g.translate(cx, cy); g.rotate(rot); g.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k); g.globalAlpha = clamp(k * 3);
   g.fillStyle = '#4a4f45'; g.strokeStyle = INK; g.lineWidth = 3.5; g.lineJoin = 'round'; g.beginPath(); g.moveTo(-w / 2, -h / 2 + 3); g.lineTo(w / 2 - 6, -h / 2); g.lineTo(w / 2, h / 2 - 4); g.lineTo(-w / 2 + 5, h / 2); g.closePath(); g.fill(); g.stroke();
   g.strokeStyle = alpha(INK, 0.3); g.lineWidth = 2; for (let x = -w / 2 + 30; x < w / 2 - 10; x += 46) { g.beginPath(); g.moveTo(x, -h / 2 + 7); g.quadraticCurveTo(x + 8, 0, x - 2, h / 2 - 7); g.stroke(); }
@@ -243,14 +282,14 @@ function vGaps(g, t, A) { const u = t - T_V1, FY = 812, V = { x: 222, y: FY, s: 
   const c = camBegin(g, A.bg.barricade, { z: lerp(1.5, 1.62, sm(u, 0, 3.4)), x: 630, y: 440 });
   g.fillStyle = '#6b5236'; g.strokeStyle = INK; g.lineWidth = 3.5; g.beginPath(); g.rect(150, FY - 2, 150, 62); g.fill(); g.stroke(); g.beginPath(); g.moveTo(150, FY + 28); g.lineTo(300, FY + 28); g.stroke();   // the crate he stands on
   for (const [cx, cy, w, h, at, rot] of PATCHES) patch(g, cx, cy, w, h, rot, at < 0 ? 1 : pop(u, at, 0.22));
-  const P1 = handFor(V, 300, 262, 1, 10), P2 = handFor(V, 318, 350, 1, 10), BACK = [20, 30, 40];
+  const P1 = handFor(V, 388, 266, 1, 10), P2 = handFor(V, 398, 350, 1, 10), BACK = [20, 30, 40];
   const armR = armSpring(u, [[-9, BACK], [0.95, P1], [1.55, BACK], [1.9, P2], [2.6, 'hips']], { feel: 'snappy', windUp: 0.08 }), armL = armSpring(u, [[-9, [-4, 60, 30]], [0.9, [-10, 20, 44]], [2.65, 'hips']], { delay: 0.05 });
   const hit = startle(u - 1.25) + startle(u - 2.2), leanAt = (tt) => -5 - 5 * (bump(tt, 0.95, 1.55) + bump(tt, 1.9, 2.5)) + 5 * sm(tt, 2.6, 2.9);
   drawVini(g, A.vini, withAlive({ ...V, t, expr: exprTrack(u, [[-9, 'determined'], [2.65, 'happy']]), look: u < 1.6 ? [0.7, -0.7] : u < 2.6 ? [0.7, -0.3] : [0.5, -0.5], lean: leanAt(u), headTilt: overlap(leanAt, u, 0.09, 0.8) - 4,
     arms: [armL, armR], squash: 0.6 * hit, crouch: -2 * (bump(u, 0.95, 1.55)), breath: breathe(t, 2.6, 0.6), hairLag: clamp(-follow((tt) => -leanAt(tt) * 4, u, { freq: 3.4, damp: 0.6 }) * 0.9, -2.5, 2.5), shadow: false }, t, { energy: 0.6 }));
   camEnd(g);
   g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = '#c9cfe0'; g.fillRect(0, 0, W, H); g.restore();
-  for (const [cx, cy, , , at] of PATCHES.slice(3)) { const d = u - at; if (d > 0 && d < 0.35) { const [sx, sy] = toScreen(c, cx - 60, cy); g.save(); g.globalAlpha = 1 - sm(d, 0.1, 0.35); g.strokeStyle = '#f4efe2'; g.lineWidth = 6; g.lineCap = 'round';
+  for (const [cx, cy, , , at] of PATCHES.slice(3)) { const d = u - at; if (d > 0 && d < 0.35) { const [sx, sy] = toScreen(c, 395, cy); g.save(); g.globalAlpha = 1 - sm(d, 0.1, 0.35); g.strokeStyle = '#f4efe2'; g.lineWidth = 6; g.lineCap = 'round';
     for (let i = 0; i < 6; i++) { const an = i * 1.05 + 0.4, r = 70 + 60 * so(d, 0, 0.2); g.beginPath(); g.moveTo(sx + Math.cos(an) * r, sy + Math.sin(an) * r * 0.6); g.lineTo(sx + Math.cos(an) * (r + 34), sy + Math.sin(an) * (r + 34) * 0.6); g.stroke(); } g.restore(); } }
   note(g, 'every. single. gap.', W * 0.7, H * 0.78, { size: 76, k: pop(u, 1.4), rot: -0.03 });
   vignette(g, 0.4); }
@@ -301,9 +340,9 @@ function vWhisper(g, t, A) { const u = t - T_V3, ANS = 2.0, OFT = 2.95, V = { x:
 const KNOCK_OPTS = { knocks: [[VOB + 2.4 - T_K, 1], [VOB + 3.45 - T_K, 1.1]], cuts: [[-9, 'wide'], [VOB + 2.05 - T_K, 'door'], [VOB + 4.55 - T_K, 'wide'], [VOB + 6.66 - T_K, 'close'], [VOB + 9.62 - T_K, 'mid'], [VOB + 12.7 - T_K, 'door'], [VOB + 14.9 - T_K, 'mid']],
   vinAt: VOB + 4.75 - T_K, holdAt: VOB + 8.1 - T_K, sweatAt: VOB + 7.0 - T_K, legAt: VOB + 9.75 - T_K, hourAt: VOB + 12.8 - T_K, leaveAt: VOB + 13.55 - T_K, exhaleAt: VOB + 15.05 - T_K };
 export function draw(g, t, A) { g.save();
-  if (t < T_C1) { placeholder(g, t, 0); dayCounter(g, 18, t, VOA); }
+  if (t < T_C1) { cityShot(g, t, A); dayCounter(g, 18, t, VOA); }
   else if (t < T_P2) candleShot(g, t, A, T_C1, 'light');
-  else if (t < T_R9) { placeholder(g, t, 1); dayCounter(g, 18, t, VOA); }
+  else if (t < T_R9) { windowCandle(g, t, A); dayCounter(g, 18, t, VOA); }
   else if (t < T_C2) rule9(g, t);
   else if (t < T_BLK) { candleShot(g, t, A, T_C2, 'blow'); dayCounter(g, 18, t, VOA); }
   else if (t < T_K) { blackout(g); const sh = [K1, K2].map((k) => camShake(t, 14, k, 0.45)); g.save(); g.translate(sh[0][0] + sh[1][0], sh[0][1] + sh[1][1]);

@@ -4,7 +4,7 @@
 // The street shots are the old hook shots h1 / h4 / h5 rebuilt on kit/motion.js. Pure functions of time.
 import { W, H, RED, clamp, lerp, sm, so, pop, camBegin, camEnd, punches, toScreen, camShake, note, arrowTo, bigText, fade, vignette } from '../kit/kit.js';
 import { drawVini, follow } from '../vini/rig.js';
-import { armSpring, overlap, withAlive, trackSpring, exprTrack } from '../kit/motion.js';
+import { armSpring, overlap, withAlive, trackSpring, move, exprTrack } from '../kit/motion.js';
 import { drawZombie, strideSpeed } from '../zombie/zombie.js';
 import { sY, hordeAt, carFront } from './hook.js';
 import { knockShot } from './s18_day18.js';
@@ -57,11 +57,12 @@ function car(g, t, A) { const u = t - T3, ASK = 24.0, cl = t >= CLOSE;
   const zy = 880, zs = sY(zy), travel = strideSpeed(zs, 0.8) * (u + 3), zx = 1235 - travel;
   drawZombie(g, A.zombie, { kind: 'office', x: zx, y: zy, s: zs, t, seed: 0.7, dir: -1, cad: 0.8, walkDist: -travel / zs });
   g.save(); g.beginPath(); g.rect(0, 0, W, 700); g.clip();                      // only his head and shoulders show above the car roof
-  const fl = startle(t - ASK), duck = sm(t, ASK, ASK + 0.4), leanAt = (tt) => -4 + 6 * startle(tt - ASK);
+  const fl = startle(t - ASK), duck = move(t, 0, 1, ASK + 0.08, { feel: 'heavy', windUp: 0.05 }), peek = sm(t, CLOSE + 0.35, CLOSE + 0.7),   // he drops until only his eyes show over the roof
+    leanAt = (tt) => -4 + 6 * startle(tt - ASK);
   const armL = armSpring(t, [[0, 'chest'], [ASK, 'face']], { feel: 'snappy', windUp: 0.05 }), armR = armSpring(t, [[0, 'cold'], [ASK + 0.02, 'face']], { feel: 'snappy', delay: 0.05 });
   const look = t < CLOSE + 0.5 ? [1, 0.1] : [lerp(1, 0, so(t, CLOSE + 0.5, CLOSE + 0.62)), lerp(0.1, 0, so(t, CLOSE + 0.5, CLOSE + 0.62))];
-  drawVini(g, A.vini, withAlive({ x: 430, y: 938, s: 1.22, t, turn: 0.75, expr: exprTrack(t, [[0, 'scared'], [ASK, 'terror'], [CLOSE + 0.15, 'scared']]), look, arms: [armL, armR], lean: leanAt(t), headTilt: overlap(leanAt, t, 0.09, 0.8) - 4 * fl,
-    crouch: 3 * fl + 4 * duck, squash: fl, shake: t > ASK ? 0.3 + 0.4 * fl : 0.12, breath: breathe(t, 0.9, 0.7), shadow: false, ...stiff((tt) => -leanAt(tt) * 4, t) }, t, { energy: 0.4 }));
+  drawVini(g, A.vini, withAlive({ x: 430, y: 938, s: 1.22, t, turn: 0.75, expr: exprTrack(t, [[0, 'worried'], [ASK, 'shock'], [ASK + 0.5, 'scared']]), look, arms: [armL, armR], lean: leanAt(t), headTilt: overlap(leanAt, t, 0.09, 0.8) - 4 * fl,
+    crouch: 3 * fl + 30 * duck - 5 * peek, squash: fl, shake: t > ASK ? 0.3 + 0.4 * fl : 0.12, breath: breathe(t, 0.9, 0.7), shadow: false, ...stiff((tt) => -leanAt(tt) * 4, t) }, t, { energy: 0.4 }));
   g.restore();
   carFront(g, A);
   camEnd(g);
