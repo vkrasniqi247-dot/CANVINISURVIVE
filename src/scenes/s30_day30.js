@@ -1,7 +1,6 @@
 // src/scenes/s30_day30.js — DAY 30 "The checkpoint" + OUTRO (script v2). Scene time t runs 0 → DUR seconds.
 // Narration: 13_day30a, 14_day30b, 15_day30c, 16_outro. Every function is a pure function of time.
-// Shots that need backgrounds that do not exist yet (BG08 checkpoint, the tent interior) are clearly marked
-// placeholders, one function each (ph*), listed in NEEDS_BG so the lead can swap the real shots in.
+// The checkpoint shots use A.bg.checkpoint (BG08; the sliding gate is drawn here) and the tent shots A.bg.tent (BG09).
 import { W, H, RED, INK, clamp, lerp, ease, alpha, mix, radGrad, linGrad, sm, so, pop, settle, track, camBegin, camEnd, punches, toScreen, camShake, nightGrade, note, arrowTo, bigText, fade, vignette, dayCounter, notebook, inkPath, tick, cross, writeOn } from '../kit/kit.js';
 import { drawVini, follow, boneScreen } from '../vini/rig.js';
 import { drawZombie, strideSpeed, KINDS } from '../zombie/zombie.js';
@@ -15,21 +14,14 @@ export const VO = [['13_day30a', C13], ['14_day30b', C14], ['15_day30c', C15], [
 const T = { walk: 0, car: 3.7, hedge: 5.85, freeze: 7.55, ticks: 10.45, sees: 13.4, phReveal: 15.15, m200: 19.55, feet: 21.35, skid: 22.9, heads: 27.85,
   runA: 30.85, runB: 32.25, phGate: 35.75, face: 37.1, phDive: 39.25, card: 42.6, phTentA: 51.7, tinOpen: 54.7, phTentB: 56.3, dogFood: 59.75, phTentC: 61.1,
   o1: 62.75, o2: 65.4, o3: 68.45, end: DUR };
-const FRZ = 8.5, KICK = 22.25, SNAP = 28.85, RUN0 = 30.98, GREEN = 43.15, STAMP = 45.6;
-export const NEEDS_BG = [
-  ['BG08', T.phReveal, T.m200, 'The checkpoint reveal, one cut or push per word: "Floodlights." (tall floodlight towers snap on / flare), "Fences." (chain-link and razor wire), "Trucks." (army trucks parked behind the fence), "The checkpoint." (wide: the whole thing at the end of the road, sliding gate open, Vini small in the foreground, relieved).'],
-  ['BG08', T.phGate, T.face, '"The gate is closing." Wide on the checkpoint: the sliding gate rolling shut (warning light flashing), the gap shrinking, Vini sprinting towards it, tiny, zombies behind him.'],
-  ['BG08', T.phDive, T.card, '"He dives through the gap, and the gate slams shut." Vini dives flat through the last gap (39.3–41.0), the gate SLAMS (camShake at ~42.0), zombies pile against the fence, Vini face-down inside, alive.'],
-  ['TENT', T.phTentA, T.tinOpen, '"That night, in a tent, he finally opens…" Vini cross-legged in a small army tent, a lamp beside him, the unlabelled tin (tin(…,{label:false})) in his hands. He turns it over, pulls the ring.'],
-  ['TENT', T.phTentB, T.dogFood, '"Special occasion." then *He looks inside. Long pause.* Same tent shot: he lifts the tin proudly, looks inside, and his face slowly falls. Hold the silence.'],
-  ['TENT', T.phTentC, T.o1, '"He eats it anyway." Small label "dog food" on the tin; he shrugs and eats it with a spoon.'],
-];
+const FRZ = 8.5, KICK = 22.25, SNAP = 28.85, RUN0 = 30.98, GREEN = 43.15, STAMP = 45.6, DIVE = 40.0, LAND = 40.46, SLAM0 = 41.25, SLAM = 41.55;
+export const NEEDS_BG = [];   // BG08 (checkpoint) and BG09 (tent) now exist: every shot is built
 export const SFX = [
   ['day_slam', C13], ['footsteps_slow', 0.2], ['night_whoosh', 1.5], ['night_whoosh', 2.5], ['footsteps_dash', 3.7], ['duck_thump', 4.9], ['hedge_rustle', 6.05], ['hedge_rustle', 7.25],
   ['footsteps_slow', 7.55], ['zombie_groan_far', 8.35], ['pencil_ticks', 10.95], ['pencil_cross', 12.0], ['gasp_small', 13.98],
   ['footsteps_brisk', 19.55], ['can_kick_tink', KICK], ['can_skid_scrape', 22.3], ['can_rattle_stop', 25.5], ['echo_can', 25.5], ['echo_can', 25.9], ['echo_can', 26.3], ['echo_can', 26.7],
   ['heads_snap_whoosh', SNAP], ['zombie_groans_many', SNAP + 0.3], ['sprint_start_scuff', RUN0], ['footsteps_sprint', RUN0 + 0.1], ['zombie_groans_chase', 31.4], ['wind_rush', T.runB],
-  ['zombie_lunge', 34.0], ['zombie_lunge', 35.1], ['gate_motor_alarm', T.phGate], ['zombie_groans_close', 37.2], ['heavy_breathing', 37.1], ['dive_whoosh', 40.2], ['gate_slam', 42.0],
+  ['zombie_lunge', 34.0], ['zombie_lunge', 35.1], ['gate_motor_alarm', T.phGate], ['zombie_groans_close', 37.2], ['heavy_breathing', 37.1], ['dive_whoosh', 40.2], ['gate_slam', SLAM], ['zombies_hit_fence', SLAM + 0.3], ['body_land_thud', LAND],
   ['counter_ding_green', GREEN], ['stamp_thud', STAMP], ['pop', 47.5], ['pop', 49.1], ['shh', 50.3], ['tent_night_ambience', T.phTentA], ['tin_ring_pull', 55.05], ['tin_lid_peel', 55.2],
   ['silence', 57.7], ['sad_squelch', C16 + 0.1], ['spoon_scrape', 61.5], ['whoosh_title', T.o1 + 0.1], ['pencil_circle', 66.25], ['pop', 66.9], ['whoosh_title', T.o3 + 0.1], ['subscribe_click', 71.05], ['shh', 72.3],
 ];
@@ -77,20 +69,6 @@ function rings(g, x, y, t, t0, o = {}) { const { n = 3, every = 0.28, speed = 30
 // a marker word that wobbles (groans)
 function groan(g, str, x, y, t, t0, o = {}) { const k = pop(t, t0) * (1 - sm(t, t0 + (o.hold ?? 1.6), t0 + (o.hold ?? 1.6) + 0.3)); if (k <= 0) return;
   note(g, str, x + Math.sin(t * 9 + x) * 3, y + Math.cos(t * 7 + y) * 3, { size: o.size ?? 60, rot: (o.rot ?? -0.06) + Math.sin(t * 5 + x) * 0.02, k, color: o.color ?? RED }); }
-
-// ---------- placeholders (one function per missing shot) ----------
-function placeholder(g, t, a, b, need, lines, said) { g.fillStyle = '#0a0908'; g.fillRect(0, 0, W, H);
-  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#8b8780'; g.font = '700 40px "Patrick Hand", sans-serif'; g.fillText(`PLACEHOLDER — needs ${need}`, W / 2, H * 0.4);
-  g.fillStyle = '#5f5c56'; g.font = '700 28px "Patrick Hand", sans-serif'; lines.forEach((l, i) => g.fillText(l, W / 2, H * 0.4 + 62 + i * 38));
-  const cur = said.filter(([at]) => t >= at).pop(); if (cur) { g.fillStyle = '#77736c'; g.font = '700 34px "Patrick Hand", sans-serif'; g.fillText(`“${cur[1]}”`, W / 2, H * 0.8); }
-  g.fillStyle = '#26241f'; g.fillRect(W * 0.3, H * 0.9, W * 0.4, 4); g.fillStyle = '#5f5c56'; g.fillRect(W * 0.3, H * 0.9, W * 0.4 * clamp((t - a) / (b - a)), 4); }
-const phReveal = (g, t) => placeholder(g, t, T.phReveal, T.m200, 'BG08 checkpoint', ['the reveal: floodlights → fences → trucks → wide on the checkpoint, gate open', `scene ${T.phReveal}–${T.m200} s`],
-  [[C13 + 14.8, 'Floodlights.'], [C13 + 15.84, 'Fences.'], [C13 + 16.88, 'Trucks.'], [C13 + 17.76, 'The checkpoint.']]);
-const phGate = (g, t) => placeholder(g, t, T.phGate, T.face, 'BG08 checkpoint', ['the sliding gate rolling shut, Vini sprinting for the gap', `scene ${T.phGate}–${T.face} s`], [[C14 + 4.88, 'The gate is closing.']]);
-const phDive = (g, t) => placeholder(g, t, T.phDive, T.card, 'BG08 checkpoint', ['Vini dives through the gap; the gate SLAMS shut (~42.0 s); zombies hit the fence', `scene ${T.phDive}–${T.card} s`], [[C14 + 8.4, 'He dives through the gap,'], [C14 + 10.1, 'and the gate slams shut.']]);
-const phTentA = (g, t) => placeholder(g, t, T.phTentA, T.tinOpen, 'tent interior', ['Vini cross-legged in a small tent, a lamp, the unlabelled tin in his hands', `scene ${T.phTentA}–${T.tinOpen} s  (the tin-opening insert that follows is built)`], [[C15 + 8.32, 'That night, in a tent, he finally opens…']]);
-const phTentB = (g, t) => placeholder(g, t, T.phTentB, T.dogFood, 'tent interior', ['he looks inside. long pause. his face falls.', `scene ${T.phTentB}–${T.dogFood} s  (the “dog food” insert that follows is built)`], [[C15 + 12.8, 'Special occasion.'], [C15 + 14.1, '(he looks inside. long pause.)']]);
-const phTentC = (g, t) => placeholder(g, t, T.phTentC, T.o1, 'tent interior', ['he shrugs and eats it with a spoon', `scene ${T.phTentC}–${T.o1} s`], [[C16 + 1.36, 'He eats it anyway.']]);
 
 // ---------- 1: "Vini has been walking for two days" — the worn-out sneak walk, two nights flick past ----------
 function shWalk(g, t, A) { const k = sm(t, 0, 3.7), d = 77 * (t + 3), x = 335 + 77 * S1 * t, step = d / STRIDE;
@@ -439,10 +417,162 @@ function shO3(g, t, A) { card(g, 0.14, W / 2, H * 0.4); const t0 = T.o3, sub = p
     vini(g, A, t, { x: 1420, y: H + 150 * s + (1 - up) * 640, s, turn: 0.08, expr: exprTrack(t, [[0, 'worried'], [SHH + 0.35, 'neutral']]), look: [track(t, [[SHH, -0.7], [SHH + 0.35, -0.7], [SHH + 0.43, 0.6], [SHH + 0.75, 0.6], [SHH + 0.83, 0]]), 0], headTilt: 4 * sm(t, SHH + 0.3, SHH + 0.6), arms: ['relaxed', aR], shadow: false,
       hairLag: clamp(-follow((tt) => move(tt, 0, 1, SHH - 0.2, { feel: 'heavy', windUp: 0.05 }) * 30, t, { freq: 3.4, damp: 0.6 }), -2.5, 2.5),
       props: { right: (g2, h, info) => { const fk = sm(t, SHH + 0.2, SHH + 0.42); if (fk <= 0) return; g2.strokeStyle = '#17131a'; g2.lineCap = 'round'; g2.lineWidth = 7 * info.s; g2.beginPath(); g2.moveTo(h[0], h[1]); g2.lineTo(h[0] + 1 * info.s, h[1] - 19 * info.s * fk); g2.stroke(); } } }, 0.5);
-    note(g, 'shhh', 1700, 560, { size: 64, color: CREAM, glow: false, k: pop(t, SHH + 0.5), rot: 0.1 }); }
+    note(g, 'shhh', 1660, 770, { size: 64, color: CREAM, glow: false, k: pop(t, SHH + 0.5), rot: 0.1 }); }
   vignette(g, 0.42); fade(g, sm(t, DUR - 0.4, DUR)); }
 
-const SHOTS = [[shWalk, T.walk], [shCar, T.car], [shHedge, T.hedge], [shFreeze, T.freeze], [shTicks, T.ticks], [shSees, T.sees], [phReveal, T.phReveal], [sh200, T.m200], [shFeet, T.feet], [shSkid, T.skid], [shHeads, T.heads],
-  [shRunA, T.runA], [shRunB, T.runB], [phGate, T.phGate], [shFace, T.face], [phDive, T.phDive], [shCard, T.card], [phTentA, T.phTentA], [shTinOpen, T.tinOpen], [phTentB, T.phTentB], [shDogFood, T.dogFood], [phTentC, T.phTentC],
+// ---------- the checkpoint (BG08) ----------
+// head-on view down the road; the gateway is the gap between the two posts. No gate is painted, so the sliding gate is drawn here.
+const HZ = 690, sC = (y) => 0.0052 * (y - HZ);                           // character scale at ground y (posts ≈ 2 people tall)
+const GX0 = 760, GX1 = 1190, GTOP = 482, GBOT = 816, GWID = GX1 - GX0;
+const GAPK = 0.6;
+const gateK = (t) => (t < SLAM0 ? track(t, [[35.8, 0], [37.1, 0.3], [39.25, 0.5], [DIVE, GAPK], [SLAM0, GAPK + 0.04]], (x) => x) : lerp(GAPK + 0.04, 1, ease.in(clamp((t - SLAM0) / (SLAM - SLAM0)))));
+const LIGHTS = [[375, 262, 1], [655, 310, 0.8], [1307, 310, 0.8], [1548, 265, 1]];
+function floodGlow(g, t, boost = 0) { g.save(); g.globalCompositeOperation = 'lighter';
+  LIGHTS.forEach(([x, y, k], i) => { const fl = 0.8 + 0.12 * Math.sin(t * 23 + i * 2) + 0.08 * Math.sin(t * 61 + i) + boost, r = 190 * k * (1 + 0.25 * boost);
+    g.fillStyle = radGrad(g, x, y, 0, r, [alpha('#fff6d8', 0.5 * fl), alpha('#ffe9a8', 0.14 * fl), alpha('#ffe9a8', 0)]); g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); });
+  g.restore(); }
+function beacon(g, t, on) { const x = 745, y = 418, fl = on * (0.5 + 0.5 * Math.sin(t * 19)) ** 2;
+  g.fillStyle = '#2a2a28'; g.strokeStyle = INK; g.lineWidth = 2.5; g.beginPath(); g.rect(x - 9, y, 18, 8); g.fill(); g.stroke();
+  g.fillStyle = mix('#7a4a14', '#ffb020', fl); g.beginPath(); g.roundRect(x - 7, y - 15, 14, 16, [7, 7, 0, 0]); g.fill(); g.stroke();
+  if (fl > 0.02) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = radGrad(g, x, y - 8, 0, 120, [alpha('#ffb020', 0.75 * fl), alpha('#ff8a10', 0.2 * fl), alpha('#ff8a10', 0)]); g.beginPath(); g.arc(x, y - 8, 120, 0, 7); g.fill(); g.restore(); } }
+// the sliding mesh gate: k = 0 open (parked behind the left fence) … 1 shut against the right post
+function gate(g, t, k) { if (k <= 0.002) return; const x1 = GX0 + GWID * k - 5 * Math.abs(settle(t, SLAM, 1, 38, 9)), x0 = x1 - GWID - 26, top = GTOP + 10, bot = GBOT - 8;
+  g.save(); g.beginPath(); g.rect(GX0 - 4, GTOP - 20, GWID + 8, GBOT - GTOP + 40); g.clip();
+  g.fillStyle = alpha('#23262a', 0.3); g.fillRect(x0, top, x1 - x0, bot - top);
+  g.save(); g.beginPath(); g.rect(x0, top, x1 - x0, bot - top); g.clip(); g.lineWidth = 1.7; g.strokeStyle = alpha('#12110e', 0.72); g.beginPath();
+  for (let d = -340; d < GWID + 40; d += 12) { g.moveTo(x0 + d, top); g.lineTo(x0 + d + (bot - top), bot); g.moveTo(x0 + d + (bot - top), top); g.lineTo(x0 + d, bot); } g.stroke(); g.restore();
+  const bars = () => { g.beginPath(); g.rect(x0 + 5, top, x1 - x0 - 10, bot - top); g.moveTo(x1 - GWID / 2, top); g.lineTo(x1 - GWID / 2, bot); g.moveTo(x0 + 5, (top + bot) / 2); g.lineTo(x1 - 5, (top + bot) / 2); g.stroke(); };
+  g.lineJoin = 'round'; g.strokeStyle = INK; g.lineWidth = 11; bars(); g.strokeStyle = '#6a6d68'; g.lineWidth = 5.5; bars(); g.strokeStyle = alpha('#c9cbc4', 0.5); g.lineWidth = 1.5; g.beginPath(); g.moveTo(x1 - 7, top + 6); g.lineTo(x1 - 7, bot - 6); g.stroke();
+  for (const wx of [x1 - 40, x1 - GWID + 40]) { g.fillStyle = '#2b2b29'; g.strokeStyle = INK; g.lineWidth = 2.5; g.beginPath(); g.arc(wx, bot + 4, 8, 0, 7); g.fill(); g.stroke(); }
+  g.restore(); }
+// "Floodlights. Fences. Trucks. The checkpoint." — one punch per word, then the whole thing
+const RV_T = [C13 + 14.8, C13 + 15.84, C13 + 16.88, C13 + 17.76];
+function shReveal(g, t, A) { const i = t < RV_T[1] ? 0 : t < RV_T[2] ? 1 : t < RV_T[3] ? 2 : 3, t0 = i ? RV_T[i] : T.phReveal, t1 = i < 3 ? RV_T[i + 1] : T.m200, k = sm(t, t0, t1), pk = 1 - so(t, t0, t0 + 0.22);
+  const V = [{ z: lerp(2.5, 2.75, k), x: lerp(400, 372, k), y: lerp(330, 290, k) }, { z: lerp(2.3, 2.45, k), x: lerp(330, 450, k), y: 520 }, { z: lerp(2.25, 2.4, k), x: lerp(1560, 1480, k), y: 610 }, { z: lerp(1.22, 1.06, k), x: 960, y: lerp(610, 560, k) }][i];
+  V.z *= 1 + 0.1 * pk;
+  camBegin(g, A.bg.checkpoint, V, camShake(t, 5, t0, 0.22));
+  const on = i === 0 ? clamp((t - T.phReveal - 0.1) / 0.05) * (t < T.phReveal + 0.32 && Math.sin(t * 70) > 0.3 ? 0.35 : 1) : 1;      // the lamp stutters on
+  if (i === 0 && on < 1) { g.fillStyle = alpha('#0b0d12', 0.55 * (1 - on)); g.fillRect(0, 0, W, H); }
+  floodGlow(g, t, i === 0 ? 0.5 * (1 - sm(t, t0 + 0.2, t0 + 0.8)) * on - (1 - on) : 0);
+  camEnd(g);
+  const lab = (str, x, y, rot) => note(g, str, x, y, { size: 96, color: '#fff3c0', glow: false, k: pop(t, t0 + 0.06, 0.22), rot });
+  if (i === 0) lab('floodlights.', W * 0.68, H * 0.72, -0.03); else if (i === 1) lab('fences.', W * 0.7, H * 0.2, 0.03); else if (i === 2) lab('trucks.', W * 0.3, H * 0.24, -0.03);
+  else { bigText(g, 'THE CHECKPOINT', W / 2, H * 0.16, { size: 150, k: pop(t, t0 + 0.05, 0.25), color: '#fff3c0', rot: -0.02 });
+    // Vini, close in the foreground, sagging with relief
+    const sag = (tt) => move(tt, 0, 1, t0 + 0.45, { feel: 'heavy', windUp: 0.08 }), up = so(t, t0, t0 + 0.3), s = 2.3;
+    const aR = armSpring(t, [[0, 'relaxed'], [t0 + 0.5, 'chest']], { feel: 'soft' });
+    vini(g, A, t, { x: 300, y: H + 330 * s * 0.52 + (1 - up) * 300, s, turn: 0.82, expr: exprTrack(t, [[0, 'shock'], [t0 + 0.4, 'happy'], [t0 + 1.0, 'relief']]), look: [0.9, -0.3], lean: 4 - 9 * sag(t), headTilt: 6 - 10 * sag(t) + overlap((tt) => -9 * sag(tt), t, 0.09, 0.7),
+      crouch: 4 * sag(t), arms: ['relaxed', aR], shadow: false, hairLag: clamp(-follow((tt) => sag(tt) * 20, t, { freq: 3.4, damp: 0.6 }), -2.5, 2.5), breath: breathe(t, 1.0, 1) }, 0.6);
+    note(g, '(people. with soup.)', W * 0.7, H * 0.9, { size: 54, color: '#ece6d6', glow: false, k: pop(t, t0 + 0.75), rot: 0.02 }); }
+  vignette(g, 0.4); hud(g, t); }
+// "The gate is closing." — what he sees as he runs at it: the gate rolling across, the gap shrinking
+function shGate(g, t, A) { const k = sm(t, T.phGate, T.face), bob = Math.abs(Math.sin(t * 9.5)) * 10;
+  const c = camBegin(g, A.bg.checkpoint, { z: lerp(1.35, 1.95, k), x: lerp(960, 985, k), y: lerp(640, 655, k) - bob / 2 }, camShake(t, 4));
+  floodGlow(g, t); gate(g, t, gateK(t)); beacon(g, t, 1); camEnd(g);
+  const [ex, ey] = toScreen(c, GX0 + GWID * gateK(t), 650);
+  bigText(g, 'CLOSING', W * 0.5, H * 0.14, { size: 150, k: pop(t, C14 + 4.95, 0.2), color: '#ffb020', rot: -0.03 });
+  arrowTo(g, ex + 30, ey, ex + 130, ey, so(t, C14 + 5.2, C14 + 5.5), '#ffb020', 0);
+  for (let i = 0; i < 10; i++) { const ph = (t * (2.4 + hash(i) * 1.5) + hash(i + 30)) % 1, a = hash(i + 11) * 6.283, r0 = 420 + ph * 500; g.strokeStyle = alpha('#fff', 0.3 * (1 - ph)); g.lineWidth = 3 + 3 * hash(i + 5); g.lineCap = 'round'; g.beginPath(); g.moveTo(W / 2 + Math.cos(a) * r0, H / 2 + Math.sin(a) * r0 * 0.6); g.lineTo(W / 2 + Math.cos(a) * (r0 + 160), H / 2 + Math.sin(a) * (r0 + 160) * 0.6); g.stroke(); }
+  vignette(g, 0.5); hud(g, t); }
+// "He dives through the gap, and the gate slams shut."
+const DV = { x0: 470, y0: 985, x1: 925, y1: 832, t0: 39.25 }, dvU = (t) => clamp((t - DV.t0) / (DIVE - DV.t0));
+const dvPos = (u) => { const x = lerp(DV.x0, DV.x1, u), y = lerp(DV.y0, DV.y1, u); return [x, y, sC(y)]; };
+const dvDist = (u) => { const a = sC(DV.y0), b = sC(DV.y1) - a; return Math.hypot(DV.x1 - DV.x0, DV.y1 - DV.y0) / b * Math.log((a + b * u) / a); };
+const ZD = [{ kind: 'worker', seed: 1.1, lag: 0.95, stop: 0.97, dy: 0 }, { kind: 'office', seed: 6.3, lag: 1.25, stop: 0.8, dy: 10 }, { kind: 'teen', seed: 4.4, lag: 1.5, stop: 0.62, dy: -4 }];
+function shDive(g, t, A) { const u = dvU(t), d = clamp((t - DIVE) / (LAND - DIVE)), landed = t >= LAND, sl = so(t, LAND, LAND + 0.35), imp = startle(t - LAND);
+  const V = { z: lerp(1.5, 1.62, sm(t, T.phDive, DIVE)), x: lerp(900, 960, sm(t, T.phDive, DIVE)), y: 730 };
+  const pk = sm(t, DIVE - 0.1, DIVE + 0.22), CL = { z: 2.25, x: 1015, y: 690 };
+  const c = camBegin(g, A.bg.checkpoint, { z: lerp(V.z, CL.z, pk), x: lerp(V.x, CL.x, pk), y: lerp(V.y, CL.y, pk) }, t >= SLAM ? camShake(t, 16, SLAM, 0.45) : camShake(t, 3, LAND, 0.2));
+  floodGlow(g, t);
+  const flying = () => { const cx = lerp(DV.x1 + 20, 1050, d), gy = lerp(DV.y1, 806, d), s = sC(gy), rot = lerp(0.42, 1.5, so(d, 0, 0.75)), cy = gy - lerp(150, 24, d * d) * s - Math.sin(Math.PI * d) * 80 * s;
+    gShadow(g, cx, gy, s * (0.7 + 0.5 * d), 0.3);
+    g.save(); g.translate(cx, cy); g.rotate(rot); vini(g, A, t, { x: 0, y: 150 * s, s, turn: 0.85, expr: 'terror', look: [0.9, 0], arms: [[34, -108, 70], [40, -100, 80]], lean: -6, headTilt: -14, walkDist: 0.001, walkMix: 0, hairLag: 2.5, packLag: 8, shadow: false, blink: false }, 0); g.restore(); };
+  const lying = () => { const s = sC(806), cx = 1050 + 22 * sl, up = sm(t, SLAM + 0.35, SLAM + 0.7);
+    gShadow(g, cx, 808, s * 1.5, 0.3);
+    g.save(); g.translate(cx, 806 - 24 * s); g.rotate(1.5 + 0.07 * imp); g.scale(1 + 0.08 * imp, 1 - 0.1 * imp);
+    vini(g, A, t, { x: 0, y: 150 * s, s, turn: 0.85, expr: up > 0.5 ? 'relief' : 'exhausted', look: [0.9, 0], arms: [[10, -96 + 20 * sl, 30], [16, -90 + 150 * up * 0 + 14 * sl, 40]], lean: -3, headTilt: -8 - 16 * up, walkDist: 0.001, walkMix: 0, shadow: false, breath: breathe(t, 0.5, 1) }, 0); g.restore();
+    for (let i = 0; i < 5; i++) { const dt = t - LAND - i * 0.03; if (dt > 0 && dt < 0.6) { g.fillStyle = alpha('#a9a394', 0.4 * (1 - dt / 0.6)); g.beginPath(); g.ellipse(cx + 40 + i * 14 + dt * 50, 800 - dt * 22 - (i % 2) * 6, 7 + dt * 26, 4 + dt * 14, 0, 0, 7); g.fill(); } } };
+  if (landed) lying(); else if (t >= DIVE && d > 0.55) flying();
+  gate(g, t, gateK(t)); beacon(g, t, t < SLAM + 0.1 ? 1 : 0.15);
+  if (t >= DIVE && !landed && d <= 0.55) flying();
+  if (t < DIVE) { const [x, y, s] = dvPos(u), cr = sm(t, DIVE - 0.16, DIVE); sprint(g, A, t, { x, y, s, dist: dvDist(u), crouch: 12 * cr, lean: -8 * cr, expr: 'terror' }); }
+  // the ones behind him get there a beat too late
+  [...ZD].sort((a, b) => a.dy - b.dy).forEach((z) => { const zu = clamp((t - DV.t0 - z.lag) / (DIVE - DV.t0) * 0.62, 0, z.stop), [x, y, s] = dvPos(zu), at = DV.t0 + z.lag + z.stop * (DIVE - DV.t0) / 0.62, hit = sm(t, at - 0.1, at + 0.15), rat = Math.sin(t * 17 + z.seed) * 3 * hit;
+    if (t < DV.t0 + z.lag - 0.3) return;
+    const zx = x - 90 * (1 - sm(t, DV.t0 + z.lag - 0.3, DV.t0 + z.lag)), zy = y + z.dy;
+    drawVini(g, A.zombie, { x: zx, y: zy, s: s * 0.9, t: t + z.seed * 3, skin: KINDS[z.kind], expr: 'groan', blink: false, turn: 0.92, look: [0.6, 0.1], walkDist: dvDist(zu) * 0.9, stride: 62, lift: 12, drag: 1,
+      arms: [[8, lerp(2, -34, hit) + rat, 80], [8, lerp(12, -14, hit) - rat, 76]], lean: lerp(-15, -9, hit) + Math.sin(t * 13 + z.seed) * 1.5 * hit, headTilt: Math.sin(t * 5 + z.seed) * 7 - 4, shake: 0.5 * hit, shadowA: 0.3 }); });
+  camEnd(g);
+  const [sx, sy] = toScreen(c, GX1 - 30, 560);
+  bigText(g, 'SLAM!', clamp(sx - 60, 300, W - 300), sy - 150, { size: 210, k: pop(t, SLAM, 0.14) * (1 - sm(t, SLAM + 0.75, SLAM + 0.95)), color: '#fff3c0', rot: -0.06 });
+  if (t > SLAM) { for (let i = 0; i < 9; i++) { const a = -2.6 + i * 0.55, dt = t - SLAM; if (dt < 0.25) { g.strokeStyle = alpha('#fff3c0', 1 - dt / 0.25); g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.moveTo(sx + Math.cos(a) * (30 + dt * 300), sy + 60 + Math.sin(a) * (30 + dt * 300)); g.lineTo(sx + Math.cos(a) * (70 + dt * 300), sy + 60 + Math.sin(a) * (70 + dt * 300)); g.stroke(); } } }
+  const [lx, ly] = toScreen(c, 1100, 740); note(g, '(made it.)', lx + 150, ly - 150, { size: 60, color: '#ece6d6', glow: false, k: pop(t, SLAM + 0.5), rot: 0.03 });
+  vignette(g, 0.46); hud(g, t); }
+
+// ---------- the tent (BG09) ----------
+const TV = { x: 770, y: 985, s: 2.0 };
+function lanternGlow(g, t) { const fl = 0.86 + 0.07 * Math.sin(t * 11.3) + 0.05 * Math.sin(t * 27.1 + 1) + 0.03 * Math.sin(t * 5.3);
+  g.save(); g.globalCompositeOperation = 'lighter';
+  g.fillStyle = radGrad(g, 958, 228, 0, 330, [alpha('#ffd27a', 0.5 * fl), alpha('#ffb44a', 0.13 * fl), alpha('#ffb44a', 0)]); g.beginPath(); g.arc(958, 228, 330, 0, 7); g.fill();
+  g.translate(940, 975); g.scale(1, 0.22); g.fillStyle = radGrad(g, 0, 0, 0, 620, [alpha('#ffb44a', 0.16 * fl), alpha('#ffb44a', 0)]); g.beginPath(); g.arc(0, 0, 620, 0, 7); g.fill(); g.restore(); }
+// the unlabelled tin in his hand; open = lid peeled back
+function handTin(g, x, y, s, rot, open) { tin(g, x, y, s, rot, { label: false }); if (!open) return; g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s);
+  g.fillStyle = '#2a1c12'; g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.ellipse(0, -22, 14, 4.5, 0, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = '#c9cdd0'; g.beginPath(); g.ellipse(17, -31, 6, 12, 0.5, 0, 7); g.fill(); g.stroke(); g.restore(); }
+function spoon(g, x, y, s, rot, full) { g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s); g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 7; g.beginPath(); g.moveTo(0, 6); g.lineTo(0, -30); g.stroke(); g.strokeStyle = '#c9cdd0'; g.lineWidth = 3.5; g.beginPath(); g.moveTo(0, 6); g.lineTo(0, -30); g.stroke();
+  g.fillStyle = '#c9cdd0'; g.strokeStyle = INK; g.lineWidth = 2.5; g.beginPath(); g.ellipse(0, -38, 7, 10, 0, 0, 7); g.fill(); g.stroke(); if (full) { g.fillStyle = '#7a4f30'; g.beginPath(); g.ellipse(0, -39, 5, 7, 0, 0, 7); g.fill(); g.stroke(); } g.restore(); }
+// Vini sitting cross-legged on the floor in the lantern's pool: the rig is drawn from the hips up, the folded stick legs are drawn here.
+// act(t) → scalars; opts o override.
+function tentVini(g, A, t, act, o, energy = 0.6) { const a = act(t), leanF = (tt) => act(tt).lean || 0, drive = (tt) => -(act(tt).lean || 0) * 4, s = TV.s, F = TV.y;
+  const h0 = TV.y - boneScreen(A.vini, { x: 0, y: TV.y, s: 1, turn: 0.3, t: 0 }, 'thigh_l')[1];              // standing hip height (v1 units)
+  const opts = withAlive({ t, smoothGait: true, x: TV.x, y: TV.y, s, shadow: false, crouch: h0 - 15 + (a.crouch || 0), turn: a.turn ?? 0.3, lean: a.lean || 0, headTilt: (a.headTilt || 0) + overlap(leanF, t, 0.09, 0.7), squash: a.squash || 0, ...lagsOf(drive, t), breath: breathe(t, 2.6, 0.6), ...o }, t, { energy });
+  const hl = boneScreen(A.vini, opts, 'thigh_l'), hr = boneScreen(A.vini, opts, 'thigh_r'), L = hl[0] < hr[0] ? hl : hr, R = hl[0] < hr[0] ? hr : hl, hy = Math.max(hl[1], hr[1]);
+  gShadow(g, TV.x + 6 * s, F - 2, s * 2.3, 0.5);
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  const leg = (hip, kx, fx, fy) => { for (const [col, w] of [[INK, 9.5 * s], ['#2b2a33', 6 * s]]) { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(hip[0], hip[1]); g.lineTo(kx, F - 15 * s); g.lineTo(fx, fy); g.stroke(); }
+    g.fillStyle = '#2b2a33'; g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.ellipse(fx + Math.sign(fx - kx) * 9 * s, fy - 1 * s, 15 * s, 8 * s, 0, 0, 7); g.fill(); g.stroke(); };
+  leg(R, TV.x + 100 * s, TV.x - 34 * s, F - 7 * s); leg(L, TV.x - 92 * s, TV.x + 42 * s, F - 3 * s);
+  g.save(); g.beginPath(); g.rect(-4000, -4000, 12000, 4000 + hy + 9 * s); g.clip(); const pose = drawVini(g, A.vini, opts); g.restore(); return pose; }
+function tentGrade(g) { g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = radGrad(g, 940, 560, 150, 1150, ['#ffffff', [0.45, '#d9c39a'], '#7d6a4c']); g.fillRect(0, 0, W, H); g.restore(); }
+// "That night, in a tent, he finally opens…" — he turns the tin over in the lamplight
+function shTentA(g, t, A) { const k = sm(t, T.phTentA, T.tinOpen), t0 = T.phTentA;
+  camBegin(g, A.bg.tent, { z: lerp(1.0, 1.32, k), x: lerp(960, 880, k), y: lerp(540, 640, k) });
+  const act = (tt) => ({ lean: -3 + move(tt, 0, -7, t0 + 1.5, { feel: 'heavy' }), headTilt: -4 + move(tt, 0, -9, t0 + 1.45, { feel: 'snappy' }), crouch: 3 * bump(tt, t0 + 1.4, t0 + 2.1) });
+  const lift = sm(t, t0 + 1.3, t0 + 1.8), spin = move(t, 0, 1, t0 + 1.9, { feel: 'soft' }) - move(t, 0, 1, t0 + 2.55, { feel: 'soft' });
+  const aL = armSpring(t, [[0, [0, 58, 26]], [t0 + 1.35, [-12, 36, 32]]], { feel: 'soft' }), aR = armSpring(t, [[0, [-4, 60, 30]], [t0 + 1.4, [-18, 40, 30]], [t0 + 2.6, [-24, 22, 32]]], { feel: 'soft', delay: 0.05 });
+  tentVini(g, A, t, act, { expr: exprTrack(t, [[0, 'exhausted'], [t0 + 1.4, 'neutral'], [t0 + 2.2, 'happy']]), look: [track(t, [[t0 + 0.5, -0.5], [t0 + 0.9, 0.2], [t0 + 1.4, 0.35]]), 0.55], arms: [aL, aR],
+    props: { left: (g2, h, info) => handTin(g2, h[0] + 12 * info.s, h[1] - 16 * info.s, info.s * 1.0, -0.25 + 0.5 * spin + 0.1 * lift, false) } });
+  lanternGlow(g, t); camEnd(g); tentGrade(g);
+  note(g, 'that night', W * 0.2, H * 0.16, { size: 70, color: CREAM, glow: false, k: pop(t, t0 + 0.2) * (1 - sm(t, t0 + 1.6, t0 + 1.9)), rot: -0.03 });
+  note(g, 'the tin with no label', W * 0.26, H * 0.3, { size: 60, k: pop(t, t0 + 2.0), rot: -0.02 }); arrowTo(g, W * 0.33, H * 0.36, W * 0.42, H * 0.56, so(t, t0 + 2.1, t0 + 2.5), RED, -20);
+  vignette(g, 0.5); fade(g, 1 - sm(t, t0, t0 + 0.4)); }
+// "Special occasion." — a little toast. Then he looks inside. Long pause.
+const TOAST = C15 + 12.85, PEEK = C15 + 14.05;
+function shTentB(g, t, A) { const k = sm(t, PEEK, T.dogFood);
+  camBegin(g, A.bg.tent, { z: lerp(1.32, 2.15, k), x: lerp(880, 850, k), y: lerp(640, 600, k) });
+  const act = (tt) => ({ lean: -6 + move(tt, 0, 9, TOAST, { feel: 'heavy' }) + move(tt, 0, -13, PEEK, { feel: 'heavy' }), headTilt: -6 + move(tt, 0, 12, TOAST, { feel: 'snappy' }) + move(tt, 0, -20, PEEK + 0.04, { feel: 'snappy' }), crouch: -3 * bump(tt, TOAST, TOAST + 0.5) });
+  const aL = armSpring(t, [[0, [-12, 36, 32]], [TOAST, [58, -30, 30]], [PEEK, [-6, 44, 34]]], { feel: 'arm' }), aR = armSpring(t, [[0, [-24, 22, 32]], [TOAST + 0.05, [8, 52, 16]], [PEEK + 0.1, [-6, 50, 26]]], { delay: 0.05 });
+  const fall = sm(t, PEEK + 0.7, PEEK + 1.6);
+  tentVini(g, A, t, act, { expr: exprTrack(t, [[0, 'happy'], [PEEK + 0.15, 'neutral'], [PEEK + 0.75, 'worried']], 0.5), look: t < PEEK ? [0.3, -0.1] : [0.3, 1], arms: [aL, aR], turn: 0.3,
+    props: { left: (g2, h, info) => handTin(g2, h[0] + 12 * info.s, h[1] - 16 * info.s, info.s * 1.0, 0.1 - 0.18 * sm(t, PEEK, PEEK + 0.3), true) } }, 0.6 * (1 - fall));
+  lanternGlow(g, t); camEnd(g); tentGrade(g);
+  note(g, 'special occasion!', W * 0.72, H * 0.24, { size: 78, color: CREAM, glow: false, k: pop(t, TOAST + 0.1) * (1 - sm(t, PEEK - 0.1, PEEK + 0.15)), rot: 0.03 });
+  note(g, '…', W * 0.7, H * 0.3, { size: 130, color: CREAM, glow: false, k: pop(t, PEEK + 1.0), rot: 0 });
+  vignette(g, 0.5 + 0.12 * k); }
+// "He eats it anyway." — a shrug, a spoon
+const EAT = C16 + 1.36;
+function shTentC(g, t, A) { const k = sm(t, T.phTentC, T.o1);
+  camBegin(g, A.bg.tent, { z: lerp(1.5, 1.62, k), x: 860, y: 630 });
+  const act = (tt) => ({ lean: -7 + move(tt, 0, 5, EAT + 0.5, { feel: 'heavy' }), headTilt: -8 + 7 * bump(tt, EAT - 0.05, EAT + 0.45) + move(tt, 0, 6, EAT + 0.55, { feel: 'snappy' }), crouch: -4 * bump(tt, EAT - 0.05, EAT + 0.45) });
+  const aL = armSpring(t, [[0, [-10, 26, 34]], [EAT, [40, 14, 12]], [EAT + 0.45, [-10, 30, 34]]], { feel: 'snappy' }), aR = armSpring(t, [[0, [0, 52, 26]], [EAT + 0.03, [44, 12, 12]], [EAT + 0.5, [-22, 24, 34]], [EAT + 0.72, [-12, 34, 30]]], { feel: 'snappy', delay: 0.05 });
+  const inMouth = t > EAT + 1.0, chew = inMouth ? Math.abs(Math.sin((t - EAT - 1.0) * 11)) : 0;
+  tentVini(g, A, t, act, { expr: exprTrack(t, [[0, 'worried'], [EAT + 0.05, 'neutral'], [EAT + 0.8, 'exhausted'], [EAT + 1.02, 'neutral']], 0.12), look: [0.2, t < EAT + 0.5 ? 0.6 : 0], arms: [aL, aR], squash: 0.6 * chew,
+    props: { left: (g2, h, info) => handTin(g2, h[0] + 12 * info.s, h[1] - 16 * info.s, info.s * 1.0, -0.08, true), right: (g2, h, info) => spoon(g2, h[0], h[1] - 4 * info.s, info.s * 1.2, -0.5 + 0.3 * sm(t, EAT + 0.5, EAT + 0.9), t > EAT + 0.5 && !inMouth) } }, 0.5);
+  lanternGlow(g, t); camEnd(g); tentGrade(g);
+  note(g, '(food is food.)', W * 0.72, H * 0.26, { size: 64, color: CREAM, glow: false, k: pop(t, EAT + 0.2), rot: 0.03 });
+  vignette(g, 0.55); fade(g, sm(t, T.o1 - 0.2, T.o1)); }
+
+const SHOTS = [[shWalk, T.walk], [shCar, T.car], [shHedge, T.hedge], [shFreeze, T.freeze], [shTicks, T.ticks], [shSees, T.sees], [shReveal, T.phReveal], [sh200, T.m200], [shFeet, T.feet], [shSkid, T.skid], [shHeads, T.heads],
+  [shRunA, T.runA], [shRunB, T.runB], [shGate, T.phGate], [shFace, T.face], [shDive, T.phDive], [shCard, T.card], [shTentA, T.phTentA], [shTinOpen, T.tinOpen], [shTentB, T.phTentB], [shDogFood, T.dogFood], [shTentC, T.phTentC],
   [shO1, T.o1], [shO2, T.o2], [shO3, T.o3]];
 export function draw(g, t, A) { let s = SHOTS[0]; for (const x of SHOTS) if (t >= x[1]) s = x; g.save(); s[0](g, t, A); g.restore(); }
