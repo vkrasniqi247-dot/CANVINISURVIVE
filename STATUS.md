@@ -109,3 +109,7 @@ What still holds it under 9.5:
 2. **Foley/music stems.** The v1 synthesized sfx (pop, hit, whoosh, footsteps, phone buzz) only exist inside `day1_v1mix.wav`, so the Opening outside 28.6–60.2 has voice + groans only. If you want them, export the v1 sfx as separate WAVs into `public/audio/sfx/` (names as in `reference/v1/shots_opening.json`) and I'll place them on their cues.
 3. **Two missing backgrounds** (README says 6 of 8 done): generate them in Copilot with the prompts already in `reference/script_and_prompts/02_BACKGROUND_PROMPTS.md`, save as PNG into `public/bg/`; the follow-up prompt crops, colour-matches and grains them.
 4. Watch `Downloads\Can Vini Survive\day1_test.mp4` and say if the punch-ins or the whip feel too much; they're one number each in `src/scenes/day1.js`.
+
+## Narration change — second person (Nov 2026)
+- The script (`reference/script_and_prompts/01_SCRIPT_Surviving_30_Days.md`) and the cue text in `reference/v1/vo_cues_opening.json` now speak to the viewer as "you". The narration never says "Vini": Vini stays on screen as the stand-in for "you". The channel name stays "Can Vini Survive?".
+- **To do before the next render:** re-record the Henry voiceover from the new script and re-run the word timestamps. The timings in `vo_cues_opening.json` and the audio in `public/audio/vo_opening_placeholder.wav` are still from the old third-person read, so scene timing must be re-synced to the new audio.
